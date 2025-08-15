@@ -6,52 +6,12 @@
         <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p class="mt-2 text-gray-600">Tổng quan về hệ thống quản lý user</p>
       </div>
-
-      <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 px-4 sm:px-0 mb-8">
+      <!-- Tài liệu toàn bộ API gọi user -->
+      <div class="px-4 sm:px-0 mb-8">
         <div class="card">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                <Users class="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Tổng số User</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ totalUsers }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                <CheckCircle class="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">User Active</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ activeUsers.length }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
-                <Clock class="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">User Inactive</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ Math.max(0, totalUsers - activeUsers.length) }}</p>
-            </div>
-          </div>
+          <ApiUser />
         </div>
       </div>
-
       <!-- Recent Users -->
       <div class="px-4 sm:px-0">
         <div class="card">
@@ -112,17 +72,28 @@
           </div>
         </div>
       </div>
+      <!-- Logout -->
+      <div class="px-4 sm:px-0">
+        <div class="card">
+          <button @click="logout" class="btn-danger flex items-center gap-2">
+            <LogOut class="w-4 h-4" />
+            Đăng xuất
+          </button>
+        </div>
+      </div>
     </main>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore.js'
-import { Users, CheckCircle, Clock, Eye } from 'lucide-vue-next'
+import { Users, CheckCircle, Clock, Eye, LogOut } from 'lucide-vue-next'
+import ApiUser from '@/components/User/apiUser.vue'
 
 const userStore = useUserStore()
-
+const router = useRouter()
 const totalUsers = computed(() => userStore.totalUsers || 0)
 const activeUsers = computed(() => userStore.activeUsers || [])
 const recentUsers = computed(() => {
@@ -147,6 +118,14 @@ const getStatusBadgeClass = (status) => {
   return status === 'active' 
     ? 'bg-green-100 text-green-800' 
     : 'bg-gray-100 text-gray-800'
+}
+
+const logout = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  sessionStorage.removeItem('token')
+  sessionStorage.removeItem('user')
+  router.push('/login')
 }
 
 onMounted(async () => {

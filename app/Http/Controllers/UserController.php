@@ -6,9 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Froiden\RestAPI\ApiController;
 use Illuminate\Support\Facades\Log;
-use App\Http\Request\UpdateUserRequest;
-use Illuminate\Support\Facades\Validator;
-use Froiden\RestAPI\ApiResponse;
 
 class UserController extends ApiController
 {

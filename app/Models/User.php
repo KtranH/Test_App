@@ -6,15 +6,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use Froiden\RestAPI\ApiModel;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 
-class User extends ApiModel
+class User extends ApiModel implements AuthenticatableContract
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -43,36 +45,6 @@ class User extends ApiModel
     //----------------------------------
     protected $filterable = [
         'id',
-        'name',
-        'email',
-        'password',
-        'status',
-        'role',
-        'created_at',
-        'updated_at',
-    ];
-    
-    protected $sortable = [
-        'id',
-        'name',
-        'email',
-        'password',
-        'status',
-        'role',
-        'created_at',
-        'updated_at',
-    ];
-    
-    protected $searchable = [
-        'name',
-        'email',
-    ];
-
-    protected $allowedIncludes = [
-        'posts',
-    ];
-
-    protected $allowedFilters = [
         'name',
         'email',
         'password',
@@ -128,13 +100,6 @@ class User extends ApiModel
 
         // Khi thêm
         static::creating(function ($user) {
-            // Mã hóa password
-            Log::info("Kiểm tra user", $user->toArray());
-            $user->password = Hash::make($user->password);
-            // Kiểm tra xem password có trống không
-            if (empty($user->password)) {
-                throw new \Exception("Password không được để trống");
-            }
             // Kiểm tra validate 
             $validator = Validator::make($user->toArray(), static::$rules);
             if ($validator->fails()) {
@@ -165,9 +130,69 @@ class User extends ApiModel
         return [
             'name' => 'string',
             'email' => 'string',
-            'password' => 'string',
+            'password' => 'hashed',
             'status' => 'string',
             'role' => 'string',
         ];
+    }
+
+    // ========================================
+    // IMPLEMENT AUTHENTICATABLE INTERFACE
+    // ========================================
+
+    /**
+     * Get the name of the unique identifier for the user.
+     */
+    public function getAuthIdentifierName(): string
+    {
+        return $this->getKeyName();
+    }
+
+    /**
+     * Get the unique identifier for the user.
+     */
+    public function getAuthIdentifier(): mixed
+    {
+        return $this->getAttribute($this->getAuthIdentifierName());
+    }
+
+    /**
+     * Get the password for the user.
+     */
+    public function getAuthPassword(): string
+    {
+        return $this->password;
+    }
+
+    /**
+     * Get the token value for the "remember me" session.
+     */
+    public function getRememberToken(): ?string
+    {
+        return $this->remember_token;
+    }
+
+    /**
+     * Set the token value for the "remember me" session.
+     */
+    public function setRememberToken($value): void
+    {
+        $this->remember_token = $value;
+    }
+
+    /**
+     * Get the column name for the "remember me" token.
+     */
+    public function getRememberTokenName(): string
+    {
+        return 'remember_token';
+    }
+
+    /**
+     * Get the column name for the password.
+     */
+    public function getAuthPasswordName(): string
+    {
+        return 'password';
     }
 }

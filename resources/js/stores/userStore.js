@@ -33,10 +33,12 @@ export const useUserStore = defineStore('user', () => {
 
   // Lấy user từ API
   const users = ref([])
+  const userQuery = ref([])
   const offset = ref(0)
   const perPage = ref(10)
   const hasMore = ref(false)
   const isFetching = ref(false)
+  const isFetchingV2 = ref(false)
   const total = ref(0)
   const nextUrl = ref(null)
 
@@ -152,6 +154,37 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  // Search user trong toàn bộ database
+  const searchUserInAllDB = async (query) => {
+    try {
+      isFetchingV2.value = true
+      userQuery.value = []
+      
+      if (!query || query.trim() === '') {
+        userQuery.value = []
+        return
+      }
+      
+      console.log('Searching users in all DB with query:', query)
+      const response = await UserApi.searchUser(query.trim())
+      console.log('Search API Response:', response)
+      
+      const respData = response?.data
+      const list = respData?.data ?? []
+      
+      userQuery.value = Array.isArray(list) ? list : []
+      
+      console.log('Search results:', userQuery.value)
+      
+    } catch (error) {
+      console.error('Error searching users in all DB:', error)
+      userQuery.value = []
+      // Có thể hiển thị thông báo lỗi cho user
+    } finally {
+      isFetchingV2.value = false
+    }
+  }
+
   const currentUser = ref(null)
   const isLoading = ref(false)
 
@@ -159,6 +192,12 @@ export const useUserStore = defineStore('user', () => {
   const activeUsers = computed(() => {
     if (!Array.isArray(users.value)) return []
     return users.value.filter(user => user.status === 'active')
+  })
+  
+  // Số user inactive
+  const inactiveUsers = computed(() => {
+    if (!Array.isArray(users.value)) return []
+    return users.value.filter(user => user.status === 'inactive')
   })
   
   // Tổng số user
@@ -170,6 +209,12 @@ export const useUserStore = defineStore('user', () => {
     return users.value.length
   })
   
+  // Số lượng user active (count)
+  const activeUsersCount = computed(() => activeUsers.value.length)
+  
+  // Số lượng user inactive (count)
+  const inactiveUsersCount = computed(() => inactiveUsers.value.length)
+  
   // Lấy user theo id
   const getUserById = computed(() => {
     return (id) => {
@@ -180,78 +225,148 @@ export const useUserStore = defineStore('user', () => {
 
   // Actions
   const addUser = async (user) => {
-    // Gửi API add user
-    const response = await UserApi.createUser(user)
-    // Kiểm tra xem response có trả về error không
-    if (response.error) {
-      throw new Error(response.error.message)
+    try {
+      // Gửi API add user
+      const response = await UserApi.createUser(user)
+      // Kiểm tra xem response có trả về error không
+      if (response.error) {
+        throw new Error(response.error.message)
+      }
+      
+      // Thêm user vào users.value
+      const newUser = {
+        ...user,
+        id: users.value.length + 1,
+        created_at: new Date().toISOString().split('T')[0]
+      }
+      users.value.push(newUser)
+      
+      // Cập nhật total count nếu cần
+      if (total.value > 0) {
+        total.value += 1
+      }
+      
+      console.log('User added successfully:', newUser)
+      console.log('Updated store state:', {
+        totalUsers: totalUsers.value,
+        activeUsersCount: activeUsersCount.value,
+        inactiveUsersCount: inactiveUsersCount.value
+      })
+      
+    } catch (error) {
+      console.error('Error adding user:', error)
+      throw error
     }
-    // Thêm user vào users.value
-    const newUser = {
-      ...user,
-      id: users.value.length + 1,
-      created_at: new Date().toISOString().split('T')[0]
-    }
-    users.value.push(newUser)
-    // Tính toán lại totalUsers, activeUsers
-    totalUsers.value = users.value.length
-    activeUsers.value = users.value.filter(user => user.status === 'active').length
   }
   
   const updateUser = async (id, updatedUser) => {
-    // Gửi API update user
-    const response = await UserApi.updateUser(id, updatedUser)
-    // Kiểm tra xem response có trả về error không
-    if (response.error) {
-      throw new Error(response.error.message)
-    }
-    // Cập nhật user trong users.value
-    const index = users.value.findIndex(user => user.id === id)
-    if (index !== -1) {
-      users.value[index] = { ...users.value[index], ...updatedUser }
+    try {
+      // Gửi API update user
+      const response = await UserApi.updateUser(id, updatedUser)
+      // Kiểm tra xem response có trả về error không
+      if (response.error) {
+        throw new Error(response.error.message)
+      }
+      
+      // Cập nhật user trong users.value
+      const index = users.value.findIndex(user => user.id === id)
+      if (index !== -1) {
+        const oldUser = users.value[index]
+        users.value[index] = { ...oldUser, ...updatedUser }
+        
+        console.log('User updated successfully:', {
+          old: oldUser,
+          new: users.value[index]
+        })
+        console.log('Updated store state:', {
+          totalUsers: totalUsers.value,
+          activeUsersCount: activeUsersCount.value,
+          inactiveUsersCount: inactiveUsersCount.value
+        })
+      }
+      
+    } catch (error) {
+      console.error('Error updating user:', error)
+      throw error
     }
   }
   
   const deleteUser = async (id) => {
-    // Gửi API delete user
-    const response = await UserApi.deleteUser(id)
-    // Kiểm tra xem response có trả về error không
-    if (response.error) {
-      throw new Error(response.error.message)
+    try {
+      // Gửi API delete user
+      const response = await UserApi.deleteUser(id)
+      // Kiểm tra xem response có trả về error không
+      if (response.error) {
+        throw new Error(response.error.message)
+      }
+      
+      // Xóa user trong users.value
+      const index = users.value.findIndex(user => user.id === id)
+      if (index !== -1) {
+        const deletedUser = users.value[index]
+        users.value.splice(index, 1)
+        
+        // Cập nhật total count nếu cần
+        if (total.value > 0) {
+          total.value -= 1
+        }
+        
+        console.log('User deleted successfully:', deletedUser)
+        console.log('Updated store state:', {
+          totalUsers: totalUsers.value,
+          activeUsersCount: activeUsersCount.value,
+          inactiveUsersCount: inactiveUsersCount.value
+        })
+      }
+      
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      throw error
     }
-    // Xóa user trong users.value
-    const index = users.value.findIndex(user => user.id === id)
-    if (index !== -1) {
-      users.value.splice(index, 1)
-    }
-    // Tính toán lại totalUsers, activeUsers
-    totalUsers.value = users.value.length
-    activeUsers.value = users.value.filter(user => user.status === 'active').length
   }
   
   const setCurrentUser = (user) => {
     currentUser.value = user
   }
 
-  return {
-    users,
-    offset,
-    perPage,
-    hasMore,
-    isFetching,
-    total,
-    nextUrl,
-    currentUser,
-    isLoading,
-    activeUsers,
-    totalUsers,
-    getUserById,
-    addUser,
-    updateUser,
-    deleteUser,
-    setCurrentUser,
-    fetchUsers,
-    loadMore,
-    refreshTotal
+  // Function để refresh statistics
+  const refreshStatistics = () => {
+    console.log('Refreshing statistics...')
+    console.log('Current store state:', {
+      totalUsers: totalUsers.value,
+      activeUsersCount: activeUsersCount.value,
+      inactiveUsersCount: inactiveUsersCount.value,
+      usersLength: users.value.length,
+      total: total.value
+    })
   }
+
+            return {
+        users,
+        userQuery,
+        offset,
+        perPage,
+        hasMore,
+        isFetching,
+        isFetchingV2,
+        total,
+        nextUrl,
+        currentUser,
+        isLoading,
+        activeUsers,
+        inactiveUsers,
+        totalUsers,
+        activeUsersCount,
+        inactiveUsersCount,
+        getUserById,
+        addUser,
+        updateUser,
+        deleteUser,
+        setCurrentUser,
+        fetchUsers,
+        loadMore,
+        refreshTotal,
+        searchUserInAllDB,
+        refreshStatistics
+      }
 })
