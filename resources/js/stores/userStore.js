@@ -33,35 +33,61 @@ export const useUserStore = defineStore('user', () => {
 
   // Lấy user từ API
   const users = ref([])
-  const currentPage = ref(1)
+  const offset = ref(0)
   const perPage = ref(10)
   const hasMore = ref(false)
   const isFetching = ref(false)
   const total = ref(0)
+  const nextUrl = ref(null)
 
   const fetchUsers = async (reset = true) => {
     try {
       isFetching.value = true
       if (reset) {
-        currentPage.value = 1
+        offset.value = 0
         users.value = []
         hasMore.value = false
         total.value = 0
+        nextUrl.value = null
       }
-      const response = await UserApi.getUsersPaginated(currentPage.value, perPage.value)
+      
+      console.log('Fetching users with offset:', offset.value, 'limit:', perPage.value)
+      const response = await UserApi.getUsersPaginated(offset.value, perPage.value)
+      console.log('API Response:', response)
+      
       const respData = response?.data
       const list = respData?.data ?? []
       const meta = respData?.meta ?? {}
+      const paging = meta?.paging ?? {}
+
+      console.log('Parsed data:', { list, meta, paging })
 
       // Lần đầu load hoặc reset: thay thế danh sách
       if (reset) {
         users.value = Array.isArray(list) ? list : []
+        // Reset offset về 0 và cập nhật cho lần tiếp theo
+        offset.value = Array.isArray(list) ? list.length : 0
       } else {
         users.value = Array.isArray(list) ? users.value.concat(list) : users.value
+        // Cập nhật offset cho lần load tiếp theo
+        if (Array.isArray(list) && list.length > 0) {
+          offset.value += list.length
+        }
       }
-      total.value = meta.total ?? users.value.length
-      hasMore.value = meta.has_more_pages === true || (meta.current_page ?? 1) < (meta.last_page ?? 1)
+      
+      total.value = paging?.total ?? users.value.length
+      nextUrl.value = paging?.links?.next || null
+      hasMore.value = !!nextUrl.value
+      
+      console.log('Updated store state:', { 
+        usersCount: users.value.length, 
+        total: total.value, 
+        hasMore: hasMore.value, 
+        nextUrl: nextUrl.value 
+      })
+      
     } catch (error) {
+      console.error('Error fetching users:', error)
       // Fallback demo data
       users.value = usersDefault.value
       total.value = users.value.length
@@ -75,19 +101,35 @@ export const useUserStore = defineStore('user', () => {
     if (isFetching.value || !hasMore.value) return
     try {
       isFetching.value = true
-      currentPage.value += 1
-      const response = await UserApi.getUsersPaginated(currentPage.value, perPage.value)
+      
+      console.log('Loading more users with offset:', offset.value, 'limit:', perPage.value)
+      const response = await UserApi.getUsersPaginated(offset.value, perPage.value)
       const respData = response?.data
       const list = respData?.data ?? []
       const meta = respData?.meta ?? {}
+      const paging = meta?.paging ?? {}
+
+      console.log('Load more response:', { list, meta, paging })
 
       if (Array.isArray(list) && list.length > 0) {
         users.value = users.value.concat(list)
+        // Cập nhật offset sau khi thêm dữ liệu thành công
+        offset.value += list.length
       }
 
-      total.value = meta.total ?? total.value
-      hasMore.value = meta.has_more_pages === true || (meta.current_page ?? currentPage.value) < (meta.last_page ?? currentPage.value)
+      total.value = paging?.total ?? total.value
+      nextUrl.value = paging?.links?.next || null
+      hasMore.value = !!nextUrl.value
+      
+      console.log('Updated store state after load more:', { 
+        usersCount: users.value.length, 
+        total: total.value, 
+        hasMore: hasMore.value, 
+        nextUrl: nextUrl.value,
+        offset: offset.value
+      })
     } catch (error) {
+      console.error('Error loading more users:', error)
       // Giữ nguyên danh sách hiện tại nếu lỗi
     } finally {
       isFetching.value = false
@@ -96,15 +138,17 @@ export const useUserStore = defineStore('user', () => {
 
   const refreshTotal = async () => {
     try {
-      const response = await UserApi.getUsersPaginated(1, 1)
+      const response = await UserApi.getUsersPaginated(0, 1)
       const respData = response?.data
       const meta = respData?.meta ?? {}
+      const paging = meta?.paging ?? {}
       
-      if (meta.total) {
-        total.value = meta.total
-        hasMore.value = users.value.length < meta.total
+      if (paging?.total) {
+        total.value = paging.total
+        hasMore.value = users.value.length < paging.total
       }
     } catch (error) {
+      console.error('Error refreshing total:', error)
     }
   }
 
@@ -191,11 +235,12 @@ export const useUserStore = defineStore('user', () => {
 
   return {
     users,
-    currentPage,
+    offset,
     perPage,
     hasMore,
     isFetching,
     total,
+    nextUrl,
     currentUser,
     isLoading,
     activeUsers,

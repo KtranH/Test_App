@@ -13,11 +13,9 @@ ApiRoute::group([
     'namespace' => 'App\Http\Controllers',
 ], function () {
     ApiRoute::resource('users', UserController::class);
-
-    // Thêm routes cho phân trang
-    ApiRoute::get('users-paginated', [UserController::class, 'paginate']);
-    ApiRoute::get('users-all', [UserController::class, 'all']);
-    ApiRoute::get('users-full', [UserController::class, 'allWithFroiden']);
+    
+    // Endpoint chính cho phân trang: GET /api/v1/users?limit=10&offset=0
+    // Không cần users-paginated nữa vì đã có trong resource
 });
 
 // Bắt tất cả các route không phải api

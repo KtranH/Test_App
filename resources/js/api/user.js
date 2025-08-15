@@ -4,9 +4,9 @@ import apiClient from '@/config/apiConfig.js'
 export const UserApi = {
     // Lấy toàn bộ user
     getAllUsers: async () => { return apiClient.get('/users-all') },
-    // Lấy user phân trang
-    getUsersPaginated: async (page = 1, perPage = 10) => {
-        return apiClient.get('/users-paginated', { params: { page, per_page: perPage } })
+    // Lấy user phân trang - sử dụng endpoint chính
+    getUsersPaginated: async (offset = 0, limit = 10) => {
+        return apiClient.get('/users', { params: { limit, offset } })
     },
     // Lấy user theo id
     getUserById: async (id) => { return apiClient.get(`/users/${id}`) },

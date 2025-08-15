@@ -149,13 +149,13 @@
           </div>
 
           <!-- Empty State -->
-          <div v-if="filteredUsers.length === 0" class="text-center py-12">
+          <div v-if="filteredUsers.length === 0 && !userStore.isFetching" class="text-center py-12">
             <Users class="mx-auto h-12 w-12 text-gray-400" />
             <h3 class="mt-2 text-sm font-medium text-gray-900">
               Không có user nào
             </h3>
             <p class="mt-1 text-sm text-gray-500">
-              Bắt đầu bằng cách tạo user đầu tiên.
+              {{ searchQuery || statusFilter || roleFilter ? 'Không tìm thấy user nào phù hợp với bộ lọc.' : 'Bắt đầu bằng cách tạo user đầu tiên.' }}
             </p>
             <div class="mt-6">
               <router-link
@@ -168,32 +168,82 @@
             </div>
           </div>
 
+          <!-- Loading State -->
+          <div v-if="userStore.isFetching && userStore.users.length === 0" class="text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">
+              Đang tải dữ liệu...
+            </h3>
+            <p class="mt-1 text-sm text-gray-500">
+              Vui lòng chờ trong giây lát
+            </p>
+          </div>
+
           <!-- Pagination Info -->
           <div v-if="filteredUsers.length > 0" class="px-6 py-4 border-t border-gray-200">
             <div class="flex items-center justify-between text-sm text-gray-700">
-              <div>
-                Hiển thị {{ userStore.users.length }} / {{ userStore.total }} user
-                <span v-if="userStore.currentPage > 1">(Trang {{ userStore.currentPage }})</span>
+              <div class="flex items-center gap-4">
+                <span>
+                  Hiển thị <span class="font-semibold">{{ filteredUsers.length }}</span> user
+                </span>
+                <span v-if="userStore.users.length > perPage" class="text-gray-500">
+                  (Đã tải <span class="font-semibold">{{ userStore.users.length }}</span> user)
+                </span>
               </div>
-              <div v-if="userStore.hasMore" class="text-blue-600">
-                Còn {{ userStore.total - userStore.users.length }} user chưa tải
+              <div v-if="userStore.hasMore" class="text-blue-600 font-medium">
+                Còn <span class="font-semibold">{{ userStore.total - userStore.users.length }}</span> user chưa tải
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Pagination Load More -->
-      <div class="px-4 sm:px-0 mt-4" v-if="userStore.hasMore">
+      <!-- Load More Button -->
+      <div class="px-4 sm:px-0 mt-6" v-if="userStore.hasMore">
         <div class="flex justify-center">
           <button
-            class="btn-secondary"
+            class="btn-secondary flex items-center gap-2 px-8 py-3 text-base font-medium hover:bg-blue-600 hover:text-white transition-all duration-200"
             :disabled="userStore.isFetching"
             @click="loadMore"
           >
-            <span v-if="!userStore.isFetching">Tải thêm</span>
-            <span v-else>Đang tải...</span>
+            <span v-if="!userStore.isFetching">
+              <Plus class="w-5 h-5" />
+              Tải thêm {{ Math.min(perPage, userStore.total - userStore.users.length) }} user
+            </span>
+            <span v-else class="flex items-center gap-2">
+              <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+              Đang tải...
+            </span>
           </button>
+        </div>
+        
+        <!-- Progress indicator -->
+        <div class="mt-4 text-center">
+          <div class="w-full bg-gray-200 rounded-full h-2 max-w-md mx-auto">
+            <div 
+              class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              :style="{ width: `${Math.min((userStore.users.length / userStore.total) * 100, 100)}%` }"
+            ></div>
+          </div>
+          <p class="text-sm text-gray-600 mt-2">
+            {{ Math.round(Math.min((userStore.users.length / userStore.total) * 100, 100)) }}% hoàn thành
+            <span class="text-blue-600 font-medium">
+              ({{ userStore.users.length }}/{{ userStore.total }})
+            </span>
+          </p>
+        </div>
+        
+        <!-- Debug info (chỉ hiển thị trong development) -->
+        <div v-if="isDevelopment" class="mt-4 p-4 bg-gray-100 rounded-lg">
+          <h4 class="text-sm font-medium text-gray-700 mb-2">Debug Info:</h4>
+          <div class="text-xs text-gray-600 space-y-1">
+            <p>Offset: {{ userStore.offset }}</p>
+            <p>Total: {{ userStore.total }}</p>
+            <p>Has More: {{ userStore.hasMore }}</p>
+            <p>Next URL: {{ userStore.nextUrl || 'None' }}</p>
+            <p>Users loaded: {{ userStore.users.length }}</p>
+            <p>Per Page: {{ perPage }}</p>
+          </div>
         </div>
       </div>
     </main>
@@ -242,7 +292,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useUserStore } from "@/stores/userStore.js";
 import { message } from "ant-design-vue";
 import {
@@ -260,6 +310,7 @@ const statusFilter = ref("");
 const roleFilter = ref("");
 const showDeleteModal = ref(false);
 const userToDelete = ref(null);
+const perPage = userStore.perPage;
 
 const filteredUsers = computed(() => {
   let users = userStore.users;
@@ -282,6 +333,15 @@ const filteredUsers = computed(() => {
 
   return users;
 });
+
+// Watch search và filter để reset phân trang
+watch([searchQuery, statusFilter, roleFilter], async (newValues, oldValues) => {
+  // Chỉ reset khi thực sự thay đổi giá trị
+  if (JSON.stringify(newValues) !== JSON.stringify(oldValues)) {
+    console.log('Search/Filter changed, resetting pagination...')
+    await userStore.fetchUsers(true);
+  }
+}, { deep: true });
 
 const getRoleBadgeClass = (role) => {
   switch (role) {
@@ -324,6 +384,13 @@ onMounted(async () => {
 })
 
 const loadMore = async () => {
-  await userStore.loadMore()
+  try {
+    await userStore.loadMore()
+  } catch (error) {
+    console.error('Error loading more users:', error)
+    // Có thể hiển thị thông báo lỗi cho user
+  }
 }
+
+const isDevelopment = import.meta.env.DEV;
 </script>

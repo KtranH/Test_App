@@ -12,90 +12,49 @@ use Froiden\RestAPI\ApiResponse;
 
 class UserController extends ApiController
 {
-    //
     protected $model = User::class;
     
     /**
-     * Lấy danh sách user với phân trang
+     * Default number of records to return
+     * @var int
      */
-    public function paginate(Request $request)
+    protected $defaultLimit = 10;
+    
+    /**
+     * Maximum number of records allowed to be returned in single request
+     * @var int
+     */
+    protected $maxLimit = 100;
+
+    /**
+     * Sử dụng phân trang tự động của thư viện laravel-rest-api
+     * 
+     * API Endpoints:
+     * GET /api/users?limit=20&offset=0
+     * GET /api/users?fields=id,name,email&limit=15&offset=30
+     * GET /api/users?filters=(status eq "active")&limit=10&offset=0
+     * GET /api/users?order=name asc&limit=25&offset=50
+     * 
+     * @return mixed
+     */
+    public function index()
     {
-        $perPage = $request->get('per_page', 10);
-        $page = $request->get('page', 1);
-        
-        // Giới hạn số lượng tối đa mỗi trang
-        if ($perPage > 100) {
-            $perPage = 100;
-        }
-        
-        $users = User::query()
-            ->select(['id', 'name', 'email', 'status', 'role', 'created_at', 'updated_at'])
-            ->paginate($perPage, ['*'], 'page', $page);
-        
-        // Tạo metadata phân trang
-        $meta = [
-            'current_page' => $users->currentPage(),
-            'last_page' => $users->lastPage(),
-            'per_page' => $users->perPage(),
-            'total' => $users->total(),
-            'from' => $users->firstItem(),
-            'to' => $users->lastItem(),
-            'has_more_pages' => $users->hasMorePages(),
-            'next_page_url' => $users->nextPageUrl(),
-            'prev_page_url' => $users->previousPageUrl(),
-            'first_page_url' => $users->url(1),
-            'last_page_url' => $users->url($users->lastPage()),
-        ];
-        
-        return ApiResponse::make("Users retrieved successfully", $users->items(), $meta);
+        // Sử dụng phương thức index() có sẵn từ ApiController
+        // Nó sẽ tự động xử lý:
+        // - fields: chọn trường cụ thể
+        // - filters: lọc dữ liệu  
+        // - order: sắp xếp
+        // - pagination: limit và offset
+        return parent::index();
     }
     
     /**
-     * Lấy tất cả user với đầy đủ tính năng của Froiden API
-     * URL: /api/users-full
+     * @deprecated Sử dụng GET /api/users thay thế
+     * Method cũ để tương thích ngược
      */
-    public function allWithFroiden(Request $request)
+    public function paginate(Request $request)
     {
-        // Tùy chỉnh query với select fields cụ thể
-        $this->query = User::query()
-            ->select(['id', 'name', 'email', 'status', 'role', 'created_at', 'updated_at']);
-        
-        // Gọi method index() của ApiController để có đầy đủ tính năng
-        $response = $this->index($request);
-        
-        // Nếu response là collection, thêm metadata phân trang
-        if (method_exists($response, 'getData')) {
-            $data = $response->getData();
-            
-            // Thêm metadata phân trang vào response
-            $meta = [
-                'current_page' => $request->get('page', 1),
-                'per_page' => $request->get('per_page', 10),
-                'total' => $this->query->count(),
-                'has_more_pages' => $this->query->count() > ($request->get('per_page', 10) * $request->get('page', 1)),
-                'message' => 'Users retrieved with pagination and sorting'
-            ];
-            
-            return ApiResponse::make("Users retrieved successfully", $data->data ?? $data, $meta);
-        }
-        
-        return $response;
-    }
-
-    /**
-     * Lấy tất cả user (không phân trang) URL: /api/users-all
-     */
-    public function all()
-    {
-        $users = User::query()
-            ->select(['id', 'name', 'email', 'status', 'role', 'created_at', 'updated_at'])
-            ->get();
-            
-        $meta = [
-            'total' => $users->count(),
-            'message' => 'All users retrieved without pagination'
-        ];
-        
-        return ApiResponse::make("All users retrieved successfully", $users->toArray(), $meta);
+        // Redirect to new index method
+        return $this->index();
     }
 }
