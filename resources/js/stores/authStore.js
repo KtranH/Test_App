@@ -14,7 +14,9 @@ export const useAuthStore = defineStore('auth', () => {
   const currentUser = computed(() => user.value)
   const isLoggedIn = computed(() => isAuthenticated.value && !!user.value)
 
-  // Actions
+  //----------------------------------
+  // Hàm đăng nhập
+  //----------------------------------
   const login = async (credentials) => {
     try {
       isLoading.value = true      
@@ -48,6 +50,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  //----------------------------------
+  // Hàm đăng ký
+  //----------------------------------
   const register = async (data) => {
     try {
       isLoading.value = true
@@ -80,6 +85,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  //----------------------------------
+  // Hàm đăng xuất
+  //----------------------------------
   const logout = async () => {
     try {
       isLoading.value = true
@@ -115,6 +123,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  //----------------------------------
+  // Hàm kiểm tra đăng nhập
+  //----------------------------------
   const checkAuth = async () => {
     try {
       const storedToken = localStorage.getItem('token')
@@ -145,6 +156,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  //----------------------------------
+  // Hàm làm mới token
+  //----------------------------------
   const refresh = async () => {
     try {
       isLoading.value = true
@@ -172,6 +186,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  //----------------------------------
+  // Hàm cập nhật thông tin user
+  //----------------------------------
   const updateProfile = async (profileData) => {
     try {
       isLoading.value = true
@@ -199,6 +216,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  //----------------------------------
+  // Hàm đổi mật khẩu
+  //----------------------------------
   const changePassword = async (passwordData) => {
     try {
       isLoading.value = true
@@ -217,7 +237,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Initialize auth state on store creation
+  //----------------------------------
+  // Hàm khởi tạo auth state
+  //----------------------------------
   const initAuth = async () => {
     await checkAuth()
   }

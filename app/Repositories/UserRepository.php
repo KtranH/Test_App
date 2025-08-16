@@ -6,7 +6,7 @@ namespace App\Repositories;
 
 use App\Models\User;
 use App\Repositories\BaseRepository;
-use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Interfaces\UserRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
@@ -21,6 +21,8 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
     /**
      * Override find để return User thay vì Model
+     * @param int $id
+     * @return User|null
      */
     public function find(int $id): ?User
     {
@@ -37,6 +39,8 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
     /**
      * Tạo user mới từ AuthRequest
+     * @param AuthRequest $request
+     * @return User
      */
     public function createFromRequest(AuthRequest $request): User
     {
@@ -52,6 +56,9 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
     /**
      * Override update để hash password
+     * @param int $id
+     * @param array $data
+     * @return bool
      */
     public function update(int $id, array $data): bool
     {
@@ -65,6 +72,8 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
     /**
      * Tìm users theo role
+     * @param string $role
+     * @return Collection
      */
     public function findByRole(string $role): Collection
     {
@@ -73,6 +82,8 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
     /**
      * Tìm users theo status
+     * @param string $status
+     * @return Collection
      */
     public function findByStatus(string $status): Collection
     {
@@ -81,6 +92,8 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
     /**
      * Tìm kiếm users
+     * @param string $query
+     * @return Collection
      */
     public function search(string $query): Collection
     {

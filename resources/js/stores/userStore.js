@@ -42,6 +42,9 @@ export const useUserStore = defineStore('user', () => {
   const total = ref(0)
   const nextUrl = ref(null)
 
+  //----------------------------------
+  // Hàm lấy danh sách user
+  //----------------------------------
   const fetchUsers = async (reset = true) => {
     try {
       isFetching.value = true
@@ -99,6 +102,9 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  //----------------------------------
+  // Hàm load thêm user
+  //----------------------------------
   const loadMore = async () => {
     if (isFetching.value || !hasMore.value) return
     try {
@@ -138,6 +144,9 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  //----------------------------------
+  // Hàm làm mới tổng số user
+  //----------------------------------
   const refreshTotal = async () => {
     try {
       const response = await UserApi.getUsersPaginated(0, 1)
@@ -154,7 +163,9 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // Search user trong toàn bộ database
+  //----------------------------------
+  // Hàm tìm kiếm user
+  //----------------------------------
   const searchUserInAllDB = async (query) => {
     try {
       isFetchingV2.value = true
@@ -223,7 +234,9 @@ export const useUserStore = defineStore('user', () => {
     }
   })  
 
-  // Actions
+  //----------------------------------
+  // Hàm thêm user
+  //----------------------------------
   const addUser = async (user) => {
     try {
       // Gửi API add user
@@ -259,6 +272,9 @@ export const useUserStore = defineStore('user', () => {
     }
   }
   
+  //----------------------------------
+  // Hàm cập nhật user
+  //----------------------------------
   const updateUser = async (id, updatedUser) => {
     try {
       // Gửi API update user
@@ -291,6 +307,9 @@ export const useUserStore = defineStore('user', () => {
     }
   }
   
+  //----------------------------------
+  // Hàm xóa user
+  //----------------------------------
   const deleteUser = async (id) => {
     try {
       // Gửi API delete user
@@ -325,11 +344,16 @@ export const useUserStore = defineStore('user', () => {
     }
   }
   
+  //----------------------------------
+  // Hàm set current user
+  //----------------------------------
   const setCurrentUser = (user) => {
     currentUser.value = user
   }
 
-  // Function để refresh statistics
+  //----------------------------------
+  // Hàm làm mới thống kê
+  //----------------------------------
   const refreshStatistics = () => {
     console.log('Refreshing statistics...')
     console.log('Current store state:', {
@@ -341,7 +365,14 @@ export const useUserStore = defineStore('user', () => {
     })
   }
 
-            return {
+  //----------------------------------
+  // Hàm khởi tạo user state
+  //----------------------------------
+  const initUser = async () => {
+    await fetchUsers()
+  }
+  
+  return {
         users,
         userQuery,
         offset,

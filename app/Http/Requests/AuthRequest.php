@@ -8,6 +8,7 @@ class AuthRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     * @return bool
      */
     public function authorize(): bool
     {
@@ -16,10 +17,11 @@ class AuthRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
+     * @return array
      */
     public function rules(): array
     {
-        if ($this->is('api/v1/auth/register')) {
+        if ($this->is('api/register')) {
             return [
                 'name' => 'required|string|min:6|max:255',
                 'email' => 'required|email|unique:users,email',
@@ -27,13 +29,13 @@ class AuthRequest extends FormRequest
             ];
         }
         
-        if ($this->is('api/v1/auth/login')) {
+        if ($this->is('api/login')) {
             return [
                 'email' => 'required|email',
                 'password' => 'required|string|min:6',
             ];
         }
-        
+
         return [];
     }
 }
