@@ -109,7 +109,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, h, computed } from 'vue'
+import { reactive, ref, h, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAuthStore } from '@/stores/authStore.js'
@@ -144,6 +144,15 @@ const rules = {
     { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
   ]
 }
+
+// Kiểm tra remember me khi component mount
+onMounted(() => {
+  const rememberData = authStore.checkRememberMe()
+  if (rememberData.remember && rememberData.email) {
+    formState.email = rememberData.email
+    formState.remember = true
+  }
+})
 
 // Handle form submission
 const onFinish = async (values) => {

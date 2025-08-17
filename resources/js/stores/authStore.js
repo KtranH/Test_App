@@ -131,8 +131,13 @@ export const useAuthStore = defineStore('auth', () => {
   const login = async (credentials) => {
     try {
       isLoading.value = true      
-      // gọi API login
-      const response = await AuthApi.login(credentials)
+      
+      const loginData = {
+        email: credentials.email,
+        password: credentials.password,
+        remember: credentials.remember || false 
+      }
+      const response = await AuthApi.login(loginData)
       
       // lấy dữ liệu từ response
       const { user: userData, token: tokenData } = response.data
@@ -148,6 +153,15 @@ export const useAuthStore = defineStore('auth', () => {
       sessionStorage.setItem('token', tokenData)
       sessionStorage.setItem('user', JSON.stringify(userData))
       
+      // Nếu remember me được chọn
+      if (credentials.remember) {
+        localStorage.setItem('remember_me', 'true')
+        localStorage.setItem('remember_email', credentials.email)
+      } else {
+        localStorage.removeItem('remember_me')
+        localStorage.removeItem('remember_email')
+      }
+      
       message.success('Đăng nhập thành công!')
       
       return { success: true, user: userData }
@@ -158,6 +172,34 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       isLoading.value = false
     }
+  }
+
+  //----------------------------------
+  // Hàm kiểm tra remember me status
+  //----------------------------------
+  const checkRememberMe = () => {
+    const rememberMe = localStorage.getItem('remember_me')
+    const rememberEmail = localStorage.getItem('remember_email')
+    
+    if (rememberMe === 'true' && rememberEmail) {
+      return {
+        remember: true,
+        email: rememberEmail
+      }
+    }
+    
+    return {
+      remember: false,
+      email: ''
+    }
+  }
+
+  //----------------------------------
+  // Hàm xóa remember me data
+  //----------------------------------
+  const clearRememberMe = () => {
+    localStorage.removeItem('remember_me')
+    localStorage.removeItem('remember_email')
   }
 
   //----------------------------------
@@ -181,6 +223,9 @@ export const useAuthStore = defineStore('auth', () => {
       sessionStorage.removeItem('token')
       sessionStorage.removeItem('user')
       
+      // Xóa remember me data khi đăng xuất
+      clearRememberMe()
+      
       message.success('Đăng xuất thành công!')
       
     } catch (error) {
@@ -193,6 +238,8 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.removeItem('user')
       sessionStorage.removeItem('token')
       sessionStorage.removeItem('user')
+      // Xóa remember me data
+      clearRememberMe()
     } finally {
       isLoading.value = false
     }
@@ -357,6 +404,8 @@ export const useAuthStore = defineStore('auth', () => {
     refresh,
     updateProfile,
     changePassword,
-    initAuth
+    initAuth,
+    checkRememberMe,
+    clearRememberMe
   }
 })

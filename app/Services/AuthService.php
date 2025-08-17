@@ -87,13 +87,30 @@ class AuthService
     /**
      * Hàm đăng nhập
      * @param User $user
+     * @param bool $remember
      * @return array
      */
-    public function login(User $user)
+    public function login(User $user, bool $remember = false)
     {
         // Tạo token mới
         $token = $user->createToken('auth_token')->plainTextToken;
-        Log::info('User đăng nhập thành công', ['user_id' => $user->id, 'email' => $user->email]);
+        
+        // Xử lý remember me nếu được yêu cầu
+        if ($remember) {
+            // Laravel sẽ tự động xử lý remember_token
+            // Không cần làm gì thêm vì đã được xử lý trong Auth::attempt
+            Log::info('User đăng nhập thành công với Remember Me', [
+                'user_id' => $user->id, 
+                'email' => $user->email,
+                'remember' => true
+            ]);
+        } else {
+            Log::info('User đăng nhập thành công', [
+                'user_id' => $user->id, 
+                'email' => $user->email
+            ]);
+        }
+        
         return [$token, $user];
     }
 

@@ -15,7 +15,6 @@ use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 
 class User extends ApiModel implements AuthenticatableContract
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
 
     /**
@@ -94,6 +93,10 @@ class User extends ApiModel implements AuthenticatableContract
 
     /**
      * Hàm kiểm tra dữ liệu
+     * @param array $data
+     * @param array $rules
+     * @return void
+     * @throws \Exception
      */
     protected static function validateData($data, $rules)
     {
@@ -103,6 +106,7 @@ class User extends ApiModel implements AuthenticatableContract
     
     /**
      * Hàm kiểm tra dữ liệu
+     * @return void
      */
     protected static function booted()
     {
@@ -139,11 +143,11 @@ class User extends ApiModel implements AuthenticatableContract
     }
 
     // ========================================
-    // IMPLEMENT AUTHENTICATABLE INTERFACE
+    // Tạo các method để Sanctum có thể sử dụng
     // ========================================
 
     /**
-     * Get the name of the unique identifier for the user.
+     * Lấy tên của unique identifier cho user
      */
     public function getAuthIdentifierName(): string
     {
@@ -151,7 +155,7 @@ class User extends ApiModel implements AuthenticatableContract
     }
 
     /**
-     * Get the unique identifier for the user.
+     * Lấy unique identifier cho user
      */
     public function getAuthIdentifier(): mixed
     {
@@ -159,7 +163,7 @@ class User extends ApiModel implements AuthenticatableContract
     }
 
     /**
-     * Get the password for the user.
+     * Lấy password cho user
      */
     public function getAuthPassword(): string
     {
@@ -167,7 +171,7 @@ class User extends ApiModel implements AuthenticatableContract
     }
 
     /**
-     * Get the token value for the "remember me" session.
+     * Lấy token value cho "remember me" session
      */
     public function getRememberToken(): ?string
     {
@@ -175,7 +179,7 @@ class User extends ApiModel implements AuthenticatableContract
     }
 
     /**
-     * Set the token value for the "remember me" session.
+     * Set token value cho "remember me" session
      */
     public function setRememberToken($value): void
     {
@@ -183,7 +187,7 @@ class User extends ApiModel implements AuthenticatableContract
     }
 
     /**
-     * Get the column name for the "remember me" token.
+     * Lấy tên của column cho "remember me" token
      */
     public function getRememberTokenName(): string
     {
@@ -191,7 +195,7 @@ class User extends ApiModel implements AuthenticatableContract
     }
 
     /**
-     * Get the column name for the password.
+     * Lấy tên của column cho password
      */
     public function getAuthPasswordName(): string
     {

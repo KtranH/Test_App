@@ -64,8 +64,12 @@ class AuthController extends Controller
             if (!$this->checkLogin($request)) return $this->error('Invalid credentials - Sai tài khoản hoặc mật khẩu', null, 401);
             $user = Auth::guard('web')->user();
             if (!$this->checkStatus($user)) return $this->error('Account is not active - Tài khoản không hoạt động', null, 403);
-            // Đăng nhập
-            [$token, $user] = $this->authService->login($user);
+            
+            // Lấy remember status từ request
+            $remember = $request->boolean('remember');
+            
+            // Đăng nhập với remember parameter
+            [$token, $user] = $this->authService->login($user, $remember);
             return $this->success('Đăng nhập thành công', ['token' => $token, 'user' => $user]);
 
         } catch (\Exception $e) {
@@ -135,7 +139,11 @@ class AuthController extends Controller
      */
     private function checkLogin(AuthRequest $request): bool
     {
-        return Auth::guard('web')->attempt($request->only('email', 'password'));
+        $remember = $request->boolean('remember');  // Lấy remember status
+        return Auth::guard('web')->attempt(
+            $request->only('email', 'password'), 
+            $remember  // Truyền remember parameter vào Auth::attempt
+        );
     }
 
     /**

@@ -33,6 +33,7 @@ class AuthRequest extends FormRequest
             return [
                 'email' => 'required|email',
                 'password' => 'required|string|min:6',
+                'remember' => 'boolean',  // Thêm validation cho remember field
             ];
         }
 
