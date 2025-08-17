@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 class AuthRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Kiểm tra xem user có quyền truy cập endpoint này không
      * @return bool
      */
     public function authorize(): bool
@@ -16,7 +16,7 @@ class AuthRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Lấy các quy tắc validation
      * @return array
      */
     public function rules(): array
@@ -37,5 +37,20 @@ class AuthRequest extends FormRequest
         }
 
         return [];
+    }
+
+    /**
+     * Lấy các thông báo lỗi
+     *
+     * @return array
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Tên là bắt buộc',
+            'name.string' => 'Tên phải là chuỗi',
+            'name.min' => 'Tên phải có ít nhất 6 ký tự',
+            'name.max' => 'Tên không được vượt quá 255 ký tự',
+        ];
     }
 }

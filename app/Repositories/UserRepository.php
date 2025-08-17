@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Repositories\BaseRepository;
 use App\Interfaces\UserRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\AuthRequest;
     
@@ -27,6 +26,16 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function find(int $id): ?User
     {
         return $this->model->find($id);
+    }
+
+    /**
+     * Override create để return User thay vì Model
+     * @param array $data
+     * @return User
+     */
+    public function create(array $data): User
+    {
+        return $this->model->create($data);
     }
 
     /**
@@ -51,7 +60,25 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             'role' => $request->role ?? 'user',
             'status' => $request->status ?? 'active',
         ];
-        return $this->create($data);
+        return $this->model->create($data);
+    }
+
+    /**
+     * Tạo user mới từ array data
+     * @param array $data
+     * @return User
+     */
+    public function createFromArray(array $data): User
+    {
+        $userData = [
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'email_verified_at' => now(),
+            'password' => Hash::make($data['password']),
+            'role' => $data['role'] ?? 'user',
+            'status' => $data['status'] ?? 'active',
+        ];
+        return $this->model->create($userData);
     }
 
     /**
@@ -63,10 +90,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function update(int $id, array $data): bool
     {
         // Hash password nếu có
-        if (isset($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        }
-
+        if (isset($data['password'])) $data['password'] = Hash::make($data['password']);
         return parent::update($id, $data);
     }
 

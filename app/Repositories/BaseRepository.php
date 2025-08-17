@@ -66,11 +66,8 @@ abstract class BaseRepository implements BaseRepositoryInterface
     public function update(int $id, array $data): bool
     {
         $model = $this->find($id);
-        
-        if (!$model) {
-            return false;
-        }
-
+        // Nếu model không tồn tại thì trả về false
+        if (!$model) return false;
         return $model->update($data);
     }
 
@@ -82,11 +79,8 @@ abstract class BaseRepository implements BaseRepositoryInterface
     public function delete(int $id): bool
     {
         $model = $this->find($id);
-        
-        if (!$model) {
-            return false;
-        }
-
+        // Nếu model không tồn tại thì trả về false
+        if (!$model) return false;
         return $model->delete();
     }
 

@@ -29,8 +29,9 @@ class ApiMiddleware
             $response->headers->set('Access-Control-Allow-Origin', '*');
             $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
             
+            // COMMENT: Tạm thời comment lại để test SPA không cần CSRF
             // Thêm header để client biết double protection status
-            $response->headers->set('X-Double-Protection', 'CSRF+Sanctum');
+            // $response->headers->set('X-Double-Protection', 'CSRF+Sanctum');
         }
         
         return $response;
@@ -43,12 +44,13 @@ class ApiMiddleware
     {
         $method = $request->method();
         $uri = $request->getRequestUri();
-        $hasCSRF = $request->hasHeader('X-XSRF-TOKEN');
+        // COMMENT: Tạm thời comment lại để test SPA không cần CSRF
+        // $hasCSRF = $request->hasHeader('X-XSRF-TOKEN');
         $hasSanctum = $request->bearerToken() !== null;
         $isProtectedEndpoint = $this->isProtectedEndpoint($uri);
         
         $protectionStatus = [];
-        if ($hasCSRF) $protectionStatus[] = 'CSRF';
+        // if ($hasCSRF) $protectionStatus[] = 'CSRF';
         if ($hasSanctum) $protectionStatus[] = 'Sanctum';
         
         $protectionString = empty($protectionStatus) ? 'None' : implode('+', $protectionStatus);
@@ -58,7 +60,8 @@ class ApiMiddleware
             'uri' => $uri,
             'protection' => $protectionString,
             'is_protected_endpoint' => $isProtectedEndpoint,
-            'csrf_present' => $hasCSRF,
+            // COMMENT: Tạm thời comment lại để test SPA không cần CSRF
+            // 'csrf_present' => $hasCSRF,
             'sanctum_present' => $hasSanctum,
             'user_agent' => $request->userAgent(),
             'ip' => $request->ip()

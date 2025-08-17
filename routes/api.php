@@ -18,9 +18,11 @@ use Froiden\RestAPI\Facades\ApiRoute;
 */
 
 // Public authentication routes
-Route::post('/register', [AuthController::class, 'register']);
-// Thêm name cho route login để tránh lỗi redirect
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+
+// Email verification routes
+Route::post('/send-verification-code', [AuthController::class, 'sendVerificationCode']);
+Route::post('/verify-email-with-registration', [AuthController::class, 'verifyEmailWithRegistration']);
 
 // Test route
 Route::get('/test', function () {

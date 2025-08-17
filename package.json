@@ -18,6 +18,7 @@
         "@ant-design/icons-vue": "^7.0.1",
         "@vitejs/plugin-vue": "^6.0.1",
         "ant-design-vue": "^3.2.20",
+        "aos": "^2.3.4",
         "axios": "^1.11.0",
         "dayjs": "^1.11.13",
         "lucide-vue-next": "^0.539.0",

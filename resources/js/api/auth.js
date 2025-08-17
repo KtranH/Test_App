@@ -1,9 +1,13 @@
 import apiClient from '@/config/apiConfig.js'
 
 export const AuthApi = {
-    // API register
-    register: async (data) => {
-        return apiClient.post('/register', data)
+    // API gửi mã xác thực email
+    sendVerificationCode: async (data) => {
+        return apiClient.post('/send-verification-code', data)
+    },
+    // API xác thực mã email và tự động tạo tài khoản
+    verifyEmailWithRegistration: async (data) => {
+        return apiClient.post('/verify-email-with-registration', data)
     },
     // API login
     login: async (data) => {

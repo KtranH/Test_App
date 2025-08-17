@@ -2,53 +2,55 @@ import axios from 'axios'
 import { useAuthStore } from '../stores/authStore'
 
 // === CSRF TOKEN MANAGEMENT ===
+// COMMENT: Tạm thời comment lại để test SPA không cần CSRF
 // Bật lại để xử lý CSRF token mismatch
 
-// Hàm lấy CSRF token mới từ server
-export const refreshCsrfToken = async () => {
-  try {
-    // Gọi đến route csrf của Laravel để lấy token mới
-    const response = await axios.get('/sanctum/csrf-cookie', {
-      withCredentials: true // Quan trọng để cookies được lưu
-    })
+// COMMENT: Hàm lấy CSRF token mới từ server
+// export const refreshCsrfToken = async () => {
+//   try {
+//     // Gọi đến route csrf của Laravel để lấy token mới
+//     const response = await axios.get('/sanctum/csrf-cookie', {
+//       withCredentials: true // Quan trọng để cookies được lưu
+//     })
     
-    // Lấy token từ cookie để cập nhật header
-    const cookies = document.cookie.split(';')
-    const xsrfCookie = cookies.find(cookie => cookie.trim().startsWith('XSRF-TOKEN='))
+//     // Lấy token từ cookie để cập nhật header
+//     const cookies = document.cookie.split(';')
+//     const xsrfCookie = cookies.find(cookie => cookie.trim().startsWith('XSRF-TOKEN='))
     
-    if (xsrfCookie) {
-      const token = decodeURIComponent(xsrfCookie.trim().substring('XSRF-TOKEN='.length))
-      axios.defaults.headers.common['X-XSRF-TOKEN'] = token
-      apiClient.defaults.headers.common['X-XSRF-TOKEN'] = token
-      return token
-    } else {
-      return null
-    }
-  } catch (error) {
-    return null
-  }
-}
+//     if (xsrfCookie) {
+//       const token = decodeURIComponent(xsrfCookie.trim().substring('XSRF-TOKEN='.length))
+//       axios.defaults.headers.common['X-XSRF-TOKEN'] = token
+//       apiClient.defaults.headers.common['X-XSRF-TOKEN'] = token
+//       return token
+//     } else {
+//       return null
+//     }
+//   } catch (error) {
+//     return null
+//   }
+// }
 
-// Hàm để lấy CSRF token từ cookie
-export const getCsrfTokenFromCookie = () => {
-  const cookies = document.cookie.split(';')
-  const xsrfCookie = cookies.find(cookie => cookie.trim().startsWith('XSRF-TOKEN='))
+// COMMENT: Hàm để lấy CSRF token từ cookie
+// export const getCsrfTokenFromCookie = () => {
+//   const cookies = document.cookie.split(';')
+//   const xsrfCookie = cookies.find(cookie => cookie.trim().startsWith('XSRF-TOKEN='))
   
-  if (xsrfCookie) {
-    return decodeURIComponent(xsrfCookie.trim().substring('XSRF-TOKEN='.length))
-  }
+//   if (xsrfCookie) {
+//     return decodeURIComponent(xsrfCookie.trim().substring('XSRF-TOKEN='.length))
+//   }
   
-  return null
-}
+//   return null
+// }
 
 // === API CLIENT CONFIGURATION ===
 
-// Tạo instance axios với cấu hình cho DOUBLE PROTECTION (CSRF + Sanctum)
-// Bật lại withCredentials để đảm bảo CSRF token hoạt động
+// Tạo instance axios với cấu hình cho SANCTUM ONLY
+// COMMENT: Tạm thời comment lại withCredentials để test SPA không cần CSRF
 const apiClient = axios.create({
   baseURL: '/api', // Base URL của API
   timeout: 30000, // Timeout mặc định là 30 giây
-  withCredentials: true,
+  // COMMENT: Tạm thời comment lại để test SPA không cần CSRF
+  // withCredentials: true,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
@@ -56,38 +58,39 @@ const apiClient = axios.create({
   }
 })
 
-// === REQUEST INTERCEPTOR - DOUBLE PROTECTION ===
-// COMMENT: Tạm thời comment lại để test API không cần đăng nhập
- apiClient.interceptors.request.use(
-     config => {
-     let token = null;
-     
-     const storedToken = localStorage.getItem('token');
-     if (storedToken) {
-       token = storedToken;
-     }
-     
-     if (!token) {
-       const sessionToken = sessionStorage.getItem('token');
-       if (sessionToken) {
-         token = sessionToken;
-       }
-     }
-     
-     if (token) {
-       config.headers.Authorization = `Bearer ${token}`;
-     }
-     
-     const csrfToken = getCsrfTokenFromCookie();
-     if (csrfToken) {
-       config.headers['X-XSRF-TOKEN'] = csrfToken;
-     }
-     
-     return config;
-   },
-   error => {
-     return Promise.reject(error);
-   }
+// === REQUEST INTERCEPTOR - SANCTUM ONLY ===
+// COMMENT: Tạm thời comment lại để test SPA không cần CSRF
+apiClient.interceptors.request.use(
+    config => {
+    let token = null;
+    
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      token = storedToken;
+    }
+    
+    if (!token) {
+      const sessionToken = sessionStorage.getItem('token');
+      if (sessionToken) {
+        token = sessionToken;
+      }
+    }
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // COMMENT: Tạm thời comment lại CSRF token để test SPA không cần CSRF
+    // const csrfToken = getCsrfTokenFromCookie();
+    // if (csrfToken) {
+    //   config.headers['X-XSRF-TOKEN'] = csrfToken;
+    // }
+    
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
 )
 
 // === RESPONSE INTERCEPTOR - ERROR HANDLING ===
@@ -101,30 +104,31 @@ apiClient.interceptors.response.use(
     const url = error.config?.url
     
     // === 1. XỬ LÝ LỖI CSRF TOKEN MISMATCH (419) ===
-    if (status === 419) {
-      // Lưu lại request gốc
-      const originalRequest = error.config;
+    // COMMENT: Tạm thời comment lại để test SPA không cần CSRF
+    // if (status === 419) {
+    //   // Lưu lại request gốc
+    //   const originalRequest = error.config;
       
-      // Đảm bảo không lặp vô hạn
-      if (!originalRequest._retry) {
-        originalRequest._retry = true;
+    //   // Đảm bảo không lặp vô hạn
+    //   if (!originalRequest._retry) {
+    //     originalRequest._retry = true;
         
-        try {
-          // Lấy CSRF token mới
-          const newToken = await refreshCsrfToken();
+    //     try {
+    //       // Lấy CSRF token mới
+    //       const newToken = await refreshCsrfToken();
           
-          if (newToken) {
-            // Cập nhật header với token mới
-            originalRequest.headers['X-XSRF-TOKEN'] = newToken;
+    //       if (newToken) {
+    //         // Cập nhật header với token mới
+    //         originalRequest.headers['X-XSRF-TOKEN'] = newToken;
             
-            // Thử lại request ban đầu với token mới
-            return apiClient(originalRequest);
-          }
-        } catch (refreshError) {
-          // Silent fail
-        }
-      }
-    }
+    //         // Thử lại request ban đầu với token mới
+    //         return apiClient(originalRequest);
+    //       }
+    //     } catch (refreshError) {
+    //       // Silent fail
+    //     }
+    //   }
+    // }
     
     // === 2. XỬ LÝ LỖI VALIDATION (422) ===
     if (status === 422) {

@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
     <div class="w-full max-w-md">
       <!-- Logo/Brand -->
-      <div class="text-center mb-8">
+      <div class="text-center mb-8" data-aos="fade-up" data-aos-delay="100">
         <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4">
           <svg class="w-8 h-8 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
@@ -85,7 +85,7 @@
             :disabled="!formState.agreeTerms"
             class="!w-full !h-12 !bg-gray-900 !hover:bg-gray-800 !border-0 !rounded-lg !text-base !font-medium !shadow-lg !hover:shadow-xl !transition-all !duration-200 !disabled:bg-gray-400 !disabled:cursor-not-allowed"
           >
-            {{ loading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản' }}
+            {{ loading ? 'Đang xử lý...' : 'Đăng ký tài khoản' }}
           </a-button>
 
           <!-- Divider -->
@@ -145,7 +145,6 @@ import Footer from '@/components/Layout/Footer.vue'
 import {
   UserOutlined,
   MailOutlined,
-  PhoneOutlined,
   LockOutlined,
   GoogleOutlined,
   FacebookOutlined
@@ -159,7 +158,6 @@ const loading = computed(() => authStore.isLoading)
 const formState = reactive({
   fullName: '',
   email: '',
-  phone: '',
   password: '',
   confirmPassword: '',
   agreeTerms: false
@@ -182,10 +180,6 @@ const rules = {
     { required: true, message: 'Vui lòng nhập email!' },
     { type: 'email', message: 'Email không hợp lệ!' }
   ],
-  phone: [
-    { required: true, message: 'Vui lòng nhập số điện thoại!' },
-    { pattern: /^[0-9+\-\s()]+$/, message: 'Số điện thoại không hợp lệ!' }
-  ],
   password: [
     { required: true, message: 'Vui lòng nhập mật khẩu!' },
     { min: 8, message: 'Mật khẩu phải có ít nhất 8 ký tự!' },
@@ -203,14 +197,12 @@ const rules = {
 // Handle form submission
 const onFinish = async (values) => {
   try {
-    console.log('Register form values:', values)
-    
     await authStore.register(values)
-    router.push('/login')
-    
+    router.push('/email-verification')
   } catch (error) {
     console.error('Registration error:', error)
-    // Error message is handled in the store
+  } finally {
+    // isLoading.value = false // This line was removed from the new_code, so it's removed here.
   }
 }
 

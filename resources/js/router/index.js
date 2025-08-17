@@ -6,6 +6,9 @@ import UserEdit from '@/views/User/UserEdit.vue'
 import IconShowcase from '@/components/UI/IconShowcase.vue'
 import Login from '@/views/Auth/Login.vue'
 import Register from '@/views/Auth/Register.vue'
+import EmailVerification from '@/views/Auth/EmailVerification.vue'
+import NotFound from '@/views/Errors/404Error.vue'
+import ServerError from '@/views/Errors/500Error.vue'
 
 const routes = [
   {
@@ -16,44 +19,72 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: Login,
-    meta: { requiresGuest: true }
+    meta: { requiresGuest: true, transition: 'slide-left' }
   },
   {
     path: '/register',
     name: 'Register',
     component: Register,
-    meta: { requiresGuest: true }
+    meta: { requiresGuest: true, transition: 'slide-left' }
+  },
+  {
+    path: '/email-verification',
+    name: 'EmailVerification',
+    component: EmailVerification,
+    meta: { requiresGuest: true, transition: 'slide-left' }
   },
   {
     path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, transition: 'slide-right' }
   },
   {
     path: '/users',
     name: 'UserList',
     component: UserList,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, transition: 'slide-right' }
   },
   {
     path: '/users/create',
     name: 'UserCreate',
     component: UserCreate,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, transition: 'slide-right' }
   },
   {
     path: '/users/:id/edit',
     name: 'UserEdit',
     component: UserEdit,
     props: true,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, transition: 'slide-right' }
   },
   {
     path: '/icons',
     name: 'IconShowcase',
     component: IconShowcase,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, transition: 'slide-right' }
+  },
+  // Route 500 Error - Server Error
+  {
+    path: '/server-error',
+    name: 'ServerError',
+    component: ServerError,
+    meta: { 
+      requiresAuth: false,
+      requiresGuest: false,
+      transition: 'fade'
+    }
+  },
+  // Route 404 - phải đặt cuối cùng để catch tất cả routes không tồn tại
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: NotFound,
+    meta: { 
+      requiresAuth: false, // Không yêu cầu auth
+      requiresGuest: false, // Không yêu cầu guest
+      transition: 'fade' // Hiệu ứng fade cho 404
+    }
   }
 ]
 
@@ -62,13 +93,34 @@ const router = createRouter({
   routes
 })
 
+// Thêm hiệu ứng chuyển trang mượt mà
 router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('token') || sessionStorage.getItem('token')
+  
+  // Thêm class transition cho body
+  document.body.classList.add('page-transitioning')
+  
+  // Xử lý error routes - luôn cho phép truy cập
+  if (to.name === 'NotFound' || to.name === 'ServerError') {
+    next()
+    return
+  }
+  
+  // Xử lý các routes yêu cầu authentication
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
+  } else if (to.meta.requiresGuest && isAuthenticated) {
+    next('/dashboard')
   } else {
     next()
   }
+})
+
+router.afterEach((to, from) => {
+  // Xóa class transition sau khi chuyển trang xong
+  setTimeout(() => {
+    document.body.classList.remove('page-transitioning')
+  }, 300)
 })
 
 export default router

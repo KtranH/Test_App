@@ -65,7 +65,9 @@ class User extends ApiModel implements AuthenticatableContract
         'updated_at',
     ];
 
-    // Set up rule cho tạo mới 
+    /**
+     * Set up rule cho tạo mới 
+     */
     public static $rules = [
         'name'     => 'required|string|min:6|max:255',
         'email'    => 'required|email|unique:users,email',
@@ -74,52 +76,52 @@ class User extends ApiModel implements AuthenticatableContract
         'status'   => 'required|string|in:active,inactive',
     ];
 
-    // Set up rule cho cập nhật
+    /**
+     * Set up rule cho cập nhật
+     */
     public static $updateRules = [
         'name'     => 'required|string|min:6|max:255',
         'role'     => 'required|string|in:user,super_admin,admin',
         'status'   => 'required|string|in:active,inactive',
     ];
 
-    // Set up rule cho xóa
+    /**
+     * Set up rule cho xóa
+     */
     public static $deleteRules = [
         'id' => 'required|exists:users,id',
     ];
 
-    // Kiểm tra dữ liệu
+    /**
+     * Hàm kiểm tra dữ liệu
+     */
+    protected static function validateData($data, $rules)
+    {
+        $validator = Validator::make($data, $rules);
+        if ($validator->fails()) throw new \Exception($validator->errors()->first());
+    }
+    
+    /**
+     * Hàm kiểm tra dữ liệu
+     */
     protected static function booted()
     {
         // Khi sửa
         static::updating(function ($user) {
-            // Kiểm tra validate 
-            $validator = Validator::make($user->toArray(), static::$updateRules);
-            if ($validator->fails()) {
-                throw new \Exception($validator->errors()->first());
-            }
+            static::validateData($user->toArray(), static::$updateRules);
         });
 
         // Khi thêm
         static::creating(function ($user) {
-            // Kiểm tra validate 
-            $validator = Validator::make($user->toArray(), static::$rules);
-            if ($validator->fails()) {
-                throw new \Exception($validator->errors()->first());
-            }
+            static::validateData($user->toArray(), static::$rules);
         });
-
+        
         // Khi xóa
         static::deleting(function ($user) {
-            // Kiểm tra validate 
-            $validator = Validator::make($user->toArray(), static::$deleteRules);
-            if ($validator->fails()) {
-                throw new \Exception($validator->errors()->first());
-            }
+            static::validateData($user->toArray(), static::$deleteRules);
         });
     }
 
-    // Kiểm tra dữ liệu khi thêm
-    //----------------------------------
-    
     /**
      * Get the attributes that should be cast.
      *

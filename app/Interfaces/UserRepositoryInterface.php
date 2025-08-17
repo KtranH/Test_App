@@ -27,6 +27,13 @@ interface UserRepositoryInterface extends BaseRepositoryInterface
     public function createFromRequest(AuthRequest $request): User;
 
     /**
+     * Tạo user mới từ array data
+     * @param array $data
+     * @return User
+     */
+    public function createFromArray(array $data): User;
+
+    /**
      * Tìm users theo role
      * @param string $role
      * @return Collection

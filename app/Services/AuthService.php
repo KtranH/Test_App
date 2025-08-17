@@ -2,49 +2,97 @@
 
 namespace App\Services;
 use App\Http\Requests\AuthRequest;
+use App\Http\Requests\EmailVerificationRequest;
 use App\Interfaces\UserRepositoryInterface;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 class AuthService
 {
     public function __construct(
-        private UserRepositoryInterface $userRepository
+        private UserRepositoryInterface $userRepository,
+        private EmailVerificationService $emailVerificationService
     ) {}
 
     /**
-     * Hàm đăng ký
-     * @param AuthRequest $request
+     * Gửi mã xác thực email
+     * @param string $email
      * @return array
      */
-    public function register(AuthRequest $request)
+    public function sendVerificationCode(string $email): array
     {
-        // Validate dữ liệu đầu vào - sử dụng Form Request validation
-        $validated = $request->validated();
+        // Kiểm tra email đã tồn tại chưa
+        $existingUser = $this->userRepository->findByEmail($email);
+        if ($existingUser) {
+            return [
+                'success' => false,
+                'message' => 'Email này đã được sử dụng để đăng ký tài khoản.'
+            ];
+        }
 
-        // Tạo user mới thông qua repository
-        $user = $this->userRepository->createFromRequest($request);    
+        return $this->emailVerificationService->sendVerificationCode($email);
+    }
 
-        // Tạo token
-        $token = $user->createToken('auth_token')->plainTextToken;
-        Log::info('User đăng ký thành công', ['user_id' => $user->id, 'email' => $user->email]);
-        return [$token, $user];
+    /**
+     * Hàm xác thực mã email và tự động tạo tài khoản nếu có thông tin đăng ký
+     * @param array $data
+     * @return array
+     */
+    public function verifyEmailWithRegistration(array $data): array
+    {
+        // Xác thực mã email
+        $verificationResult = $this->emailVerificationService->verifyCode(
+            $data['email'], 
+            $data['verification_code']
+        );
+
+        if (!$verificationResult['success']) {
+            return $verificationResult;
+        }
+
+        // Kiểm tra xem có thông tin đăng ký không
+        if (isset($data['registration_data']) && $data['registration_data']) {
+            $registrationData = $data['registration_data'];
+            
+            // Kiểm tra email có khớp không
+            if ($registrationData['email'] !== $data['email']) {
+                return [
+                    'success' => false,
+                    'message' => 'Email không khớp với thông tin đăng ký!'
+                ];
+            }
+
+            // Tạo user mới
+            $user = $this->userRepository->createFromArray($registrationData);
+            $token = $user->createToken('auth_token')->plainTextToken;
+            return [
+                'success' => true,
+                'message' => 'Email đã được xác thực và tài khoản đã được tạo thành công!',
+                'autoRegistered' => true,
+                'token' => $token,
+                'user' => $user
+            ];
+        }
+        
+        // Thông báo thất bại, vì không có thông tin đăng ký
+        return [
+            'success' => false,
+            'message' => 'Không có thông tin đăng ký!',
+            'autoRegistered' => false
+        ];
     }
 
     /**
      * Hàm đăng nhập
-     * @param AuthRequest $request
      * @param User $user
      * @return array
      */
-    public function login(AuthRequest $request, User $user)
+    public function login(User $user)
     {
-        // Validate dữ liệu đầu vào - sử dụng Form Request validation
-        $validated = $request->validated();
         // Tạo token mới
         $token = $user->createToken('auth_token')->plainTextToken;
-
         Log::info('User đăng nhập thành công', ['user_id' => $user->id, 'email' => $user->email]);
         return [$token, $user];
     }
@@ -56,12 +104,8 @@ class AuthService
     public function logout(Request $request)
     {
         $user = $request->user();
-        if ($user) {
-            // Xóa tất cả tokens của user
-            $user->tokens()->delete();
-            
-            Log::info('User đăng xuất thành công', ['user_id' => $user->id]);
-        }
+        if ($user) $user->tokens()->delete();
+        Log::info('User đăng xuất thành công', ['user_id' => $user->id]);
     }
 
     /**
@@ -72,11 +116,7 @@ class AuthService
     public function me(Request $request)
     {
         $user = $request->user();
-            
-        if (!$user) {
-            return null;
-        }
-        return $user;
+        return $user ?? null;
     }
 
     /**

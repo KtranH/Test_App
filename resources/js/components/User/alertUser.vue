@@ -25,7 +25,7 @@
 </template>
 
 <script setup>
-import { Plus } from 'lucide-vue-next'
+import { Plus, Users } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/userStore.js'
 const userStore = useUserStore()
 const props = defineProps({

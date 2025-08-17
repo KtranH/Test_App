@@ -15,6 +15,117 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = computed(() => isAuthenticated.value && !!user.value)
 
   //----------------------------------
+  // Hàm đăng ký tài khoản
+  //----------------------------------
+  const register = async (userData) => {
+    try {
+      isLoading.value = true
+
+      // Lưu thông tin đăng ký vào localStorage để sử dụng sau khi xác thực email
+      const registrationData = {
+        name: userData.fullName,
+        email: userData.email,
+        password: userData.password,
+        timestamp: new Date().toISOString()
+      }
+      
+      localStorage.setItem('pendingRegistrationData', JSON.stringify(registrationData))
+      
+      message.success('Thông tin đăng ký đã được lưu! Vui lòng ấn nút "Gửi mã xác thực" để nhận mã.')
+      return { success: true, message: 'Thông tin đăng ký đã được lưu! Vui lòng gửi mã xác thực.' }
+      
+    } catch (error) {
+      console.error('Registration error:', error)
+      const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi đăng ký tài khoản!'
+      message.error(errorMessage)
+      throw new Error(errorMessage)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+
+  //----------------------------------
+  // Hàm gửi mã xác thực email
+  //----------------------------------
+  const sendVerificationCode = async (email) => {
+    try {
+      isLoading.value = true
+      
+      const response = await AuthApi.sendVerificationCode({ email })
+      
+      if (response.data.success) {
+        message.success(response.data.message || 'Mã xác thực đã được gửi!')
+        return { success: true, data: response.data.data }
+      } else {
+        message.error(response.data.message || 'Không thể gửi mã xác thực!')
+        return { success: false, message: response.data.message }
+      }
+      
+    } catch (error) {
+      console.error('Send verification code error:', error)
+      const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi gửi mã xác thực!'
+      message.error(errorMessage)
+      return { success: false, message: errorMessage }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  //----------------------------------
+  // Hàm xác thực email và tự động tạo tài khoản
+  //----------------------------------
+  const verifyEmailWithRegistration = async (data) => {
+    try {
+      isLoading.value = true
+      
+      const response = await AuthApi.verifyEmailWithRegistration(data)
+      
+      if (response.data.success) {
+        // Kiểm tra xem có tự động tạo tài khoản không
+        if (response.data.autoRegistered) {
+          // Tài khoản đã được tạo tự động, cập nhật state
+          const { user: userData, token: tokenData } = response.data
+          
+          user.value = userData
+          token.value = tokenData
+          isAuthenticated.value = true
+          
+          // Save to localStorage
+          localStorage.setItem('token', tokenData)
+          localStorage.setItem('user', JSON.stringify(userData))
+          
+          message.success(response.data.message || 'Email đã được xác thực và tài khoản đã được tạo thành công!')
+          
+          return { 
+            success: true, 
+            message: response.data.message,
+            autoRegistered: true
+          }
+        }
+        
+        message.success(response.data.message || 'Email đã được xác thực thành công!')
+        return { 
+          success: true, 
+          message: response.data.message,
+          autoRegistered: false
+        }
+      } else {
+        message.error(response.data.message || 'Xác thực email thất bại!')
+        return { success: false, message: response.data.message }
+      }
+      
+    } catch (error) {
+      console.error('Email verification with registration error:', error)
+      const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi xác thực email!'
+      message.error(errorMessage)
+      return { success: false, message: errorMessage }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  //----------------------------------
   // Hàm đăng nhập
   //----------------------------------
   const login = async (credentials) => {
@@ -43,42 +154,6 @@ export const useAuthStore = defineStore('auth', () => {
       
     } catch (error) {
       console.error('Login error:', error)
-      message.error('Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập!')
-      throw error
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  //----------------------------------
-  // Hàm đăng ký
-  //----------------------------------
-  const register = async (data) => {
-    try {
-      isLoading.value = true
-
-      // gọi API register
-      const response = await AuthApi.register(data)
-
-      // lấy dữ liệu từ response
-      const { user: userData, token: tokenData } = response.data
-
-      // Update state
-      user.value = userData
-      token.value = tokenData
-      isAuthenticated.value = true
-      
-      // Save to localStorage
-      localStorage.setItem('token', tokenData)
-      localStorage.setItem('user', JSON.stringify(userData))
-      
-      message.success('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.')
-      
-      return { success: true }
-      
-    } catch (error) {
-      console.error('Registration error:', error)
-      message.error('Đăng ký thất bại. Vui lòng thử lại!')
       throw error
     } finally {
       isLoading.value = false
@@ -128,54 +203,57 @@ export const useAuthStore = defineStore('auth', () => {
   //----------------------------------
   const checkAuth = async () => {
     try {
-      const storedToken = localStorage.getItem('token')
-      
-      if (storedToken) {  
-        // gọi API me
-        const response = await AuthApi.me()
-
-        // lấy dữ liệu từ response
-        const { user: userData } = response.data
-
-        // Update state
-        user.value = userData
-        isAuthenticated.value = true
-        
-        // Update localStorage với user mới
-        localStorage.setItem('user', JSON.stringify(userData))
-        
-        return true
+      if (!token.value) {
+        isAuthenticated.value = false
+        return false
       }
-      
-      return false
-      
+
+      const response = await AuthApi.me()
+      if (response.data.success) {
+        user.value = response.data.data.user || response.data.data
+        isAuthenticated.value = true
+        return true
+      } else {
+        // Token không hợp lệ, clear state
+        user.value = null
+        token.value = null
+        isAuthenticated.value = false
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        return false
+      }
     } catch (error) {
-      console.error('Auth check error:', error)
-      logout()
+      console.error('Check auth error:', error)
+      // Token không hợp lệ, clear state
+      user.value = null
+      token.value = null
+      isAuthenticated.value = false
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
       return false
     }
   }
 
   //----------------------------------
-  // Hàm làm mới token
+  // Hàm refresh token
   //----------------------------------
   const refresh = async () => {
     try {
       isLoading.value = true
 
-      // gọi API refresh
       const response = await AuthApi.refresh()
-
-      // lấy dữ liệu từ response
-      const { token: tokenData } = response.data
-
-      // Update state
-      token.value = tokenData
-      
-      // Update localStorage
-      localStorage.setItem('token', tokenData)
-      
-      message.success('Token refreshed thành công!')
+      if (response.data.success) {
+        const { token: tokenData } = response.data.data
+        token.value = tokenData
+        
+        // Update localStorage
+        localStorage.setItem('token', tokenData)
+        
+        message.success('Token refreshed thành công!')
+        
+      } else {
+        message.error('Token refresh thất bại!')
+      }
       
     } catch (error) {
       console.error('Token refresh error:', error)
@@ -241,6 +319,20 @@ export const useAuthStore = defineStore('auth', () => {
   // Hàm khởi tạo auth state
   //----------------------------------
   const initAuth = async () => {
+    // Kiểm tra xem có user trong localStorage không
+    const storedUser = localStorage.getItem('user')
+    if (storedUser && token.value) {
+      try {
+        const userData = JSON.parse(storedUser)
+        user.value = userData
+        isAuthenticated.value = true
+      } catch (error) {
+        console.error('Error parsing stored user:', error)
+        localStorage.removeItem('user')
+      }
+    }
+    
+    // Sau đó kiểm tra token với server
     await checkAuth()
   }
 
@@ -256,8 +348,10 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn,
     
     // Actions
-    login,
+    sendVerificationCode,
+    verifyEmailWithRegistration,
     register,
+    login,
     logout,
     checkAuth,
     refresh,

@@ -37,7 +37,6 @@ class UserController extends ApiController
     public function index()
     {
         // Sử dụng phương thức index() có sẵn từ ApiController
-        // Nó sẽ tự động xử lý:
         // - fields: chọn trường cụ thể
         // - filters: lọc dữ liệu  
         // - order: sắp xếp

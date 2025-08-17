@@ -1,112 +1,111 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-      <!-- Logo/Brand -->
-      <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4">
-          <svg class="w-8 h-8 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-          </svg>
+  <PageTransition aos-animation="slide-in-left" aos-duration="800">
+    <div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
+      <div class="w-full max-w-md">
+        <!-- Logo/Brand -->
+        <div class="text-center mb-8" data-aos="fade-down" data-aos-delay="100">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4">
+            <svg class="w-8 h-8 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+          </div>
+          <h1 class="text-3xl font-bold text-white mb-2">Chào mừng trở lại</h1>
+          <p class="text-gray-400">Đăng nhập để tiếp tục</p>
         </div>
-        <h1 class="text-3xl font-bold text-white mb-2">Chào mừng trở lại</h1>
-        <p class="text-gray-400">Đăng nhập để tiếp tục</p>
-      </div>
 
-      <!-- Login Form -->
-      <div class="bg-white rounded-2xl shadow-2xl p-8">
-        <a-form
-          :model="formState"
-          :rules="rules"
-          @finish="onFinish"
-          layout="vertical"
-          size="large"
-        >
-          <!-- Email Field -->
-          <a-form-item name="email" label="Email">
-            <a-input
-              v-model:value="formState.email"
-              placeholder="Nhập email của bạn"
-              :prefix="h(MailOutlined)"
-              class="!h-12 !rounded-lg !border-gray-300 !focus:border-gray-900 !focus:ring-gray-900"
-            />
-          </a-form-item>
-
-          <!-- Password Field -->
-          <a-form-item name="password" label="Mật khẩu">
-            <a-input-password
-              v-model:value="formState.password"
-              placeholder="Nhập mật khẩu"
-              :prefix="h(LockOutlined)"
-              class="!h-12 !rounded-lg !border-gray-300 !focus:border-gray-900 !focus:ring-gray-900"
-            />
-          </a-form-item>
-
-          <!-- Remember Me & Forgot Password -->
-          <div class="flex items-center justify-between mb-6">
-            <a-checkbox v-model:checked="formState.remember">
-              <span class="text-gray-700">Ghi nhớ đăng nhập</span>
-            </a-checkbox>
-            <a-button type="link" class="!text-gray-600 !hover:text-gray-900 !p-0">
-              Quên mật khẩu?
-            </a-button>
-          </div>
-
-          <!-- Login Button -->
-          <a-button
-            type="primary"
-            html-type="submit"
-            :loading="loading"
-            class="!w-full !h-12 !bg-gray-900 !hover:bg-gray-800 !border-0 !rounded-lg !text-base !font-medium !shadow-lg !hover:shadow-xl !transition-all !duration-200"
+        <!-- Login Form -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+          <a-form
+            :model="formState"
+            :rules="rules"
+            @finish="onFinish"
+            layout="vertical"
+            size="large"
           >
-            {{ loading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
-          </a-button>
+            <!-- Email Field -->
+            <a-form-item name="email" label="Email">
+              <a-input
+                v-model:value="formState.email"
+                placeholder="Nhập email của bạn"
+                :prefix="h(MailOutlined)"
+                class="!h-12 !rounded-lg !border-gray-300 !focus:border-gray-900 !focus:ring-gray-900"
+              />
+            </a-form-item>
 
-          <!-- Divider -->
-          <div class="relative my-6">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-gray-300"></div>
+            <!-- Password Field -->
+            <a-form-item name="password" label="Mật khẩu">
+              <a-input-password
+                v-model:value="formState.password"
+                placeholder="Nhập mật khẩu"
+                :prefix="h(LockOutlined)"
+                class="!h-12 !rounded-lg !border-gray-300 !focus:border-gray-900 !focus:ring-gray-900"
+              />
+            </a-form-item>
+
+            <!-- Remember Me & Forgot Password -->
+            <div class="flex items-center justify-between mb-6">
+              <a-checkbox v-model:checked="formState.remember">
+                <span class="text-gray-700">Ghi nhớ đăng nhập</span>
+              </a-checkbox>
+              <a-button type="link" class="!text-gray-600 !hover:text-gray-900 !p-0">
+                Quên mật khẩu?
+              </a-button>
             </div>
-            <div class="relative flex justify-center text-sm">
-              <span class="px-2 bg-white text-gray-500">Hoặc</span>
+
+            <!-- Login Button -->
+            <a-button
+              type="primary"
+              html-type="submit"
+              :loading="loading"
+              class="!w-full !h-12 !bg-gray-900 !hover:bg-gray-800 !border-0 !rounded-lg !text-base !font-medium !shadow-lg !hover:shadow-xl !transition-all !duration-200"
+            >
+              {{ loading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
+            </a-button>
+
+            <!-- Divider -->
+            <div class="relative my-6">
+              <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-300"></div>
+              </div>
+              <div class="relative flex justify-center text-sm">
+                <span class="px-2 bg-white text-gray-500">Hoặc</span>
+              </div>
             </div>
-          </div>
 
-          <!-- Social Login -->
-          <div class="space-y-3">
-            <a-button
-              class="!w-full !h-12 !border !border-gray-300 !rounded-lg !text-gray-700 !hover:border-gray-400 !hover:bg-gray-50 !transition-all !duration-200"
-              @click="loginWithGoogle"
-            >
-              <GoogleOutlined class="mr-2" />
-              Đăng nhập với Google
-            </a-button>
-            
-            <a-button
-              class="!w-full !h-12 !border !border-gray-300 !rounded-lg !text-gray-700 !hover:border-gray-400 !hover:bg-gray-50 !transition-all !duration-200"
-              @click="loginWithFacebook"
-            >
-              <FacebookOutlined class="mr-2" />
-              Đăng nhập với Facebook
-            </a-button>
-          </div>
+            <!-- Social Login -->
+            <div class="space-y-3">
+              <a-button
+                class="!w-full !h-12 !border !border-gray-300 !rounded-lg !text-gray-700 !hover:border-gray-400 !hover:bg-gray-50 !transition-all !duration-200"
+                @click="loginWithGoogle"
+              >
+                <GoogleOutlined class="mr-2" />
+                Đăng nhập với Google
+              </a-button>
+              
+              <a-button
+                class="!w-full !h-12 !border !border-gray-300 !rounded-lg !text-gray-700 !hover:border-gray-400 !hover:bg-gray-50 !transition-all !duration-200"
+                @click="loginWithFacebook"
+              >
+                <FacebookOutlined class="mr-2" />
+                Đăng nhập với Facebook
+              </a-button>
+            </div>
 
-          <!-- Register Link -->
-          <div class="text-center mt-6">
-            <span class="text-gray-600">Chưa có tài khoản? </span>
-            <router-link
-              to="/register"
-              class="text-gray-900 font-medium hover:text-gray-700 transition-colors duration-200"
-            >
-              Đăng ký ngay
-            </router-link>
-          </div>
-        </a-form>
+            <!-- Register Link -->
+            <div class="text-center mt-6">
+              <span class="text-gray-600">Chưa có tài khoản? </span>
+              <router-link
+                to="/register"
+                class="text-gray-900 font-medium hover:text-gray-700 transition-colors duration-200"
+              >
+                Đăng ký ngay
+              </router-link>
+            </div>
+          </a-form>
+        </div>
       </div>
-
-      <!-- Footer -->
-      <Footer />
     </div>
-  </div>
+  </PageTransition>
 </template>
 
 <script setup>
@@ -121,6 +120,7 @@ import {
   GoogleOutlined,
   FacebookOutlined
 } from '@ant-design/icons-vue'
+import PageTransition from '@/components/UI/PageTransition.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
