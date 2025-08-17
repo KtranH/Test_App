@@ -96,6 +96,9 @@ export const useAuthStore = defineStore('auth', () => {
           localStorage.setItem('user', JSON.stringify(userData))
           
           message.success(response.data.message || 'Email đã được xác thực và tài khoản đã được tạo thành công!')
+
+          // Xóa dữ liệu đăng ký tài khoản
+          localStorage.removeItem('pendingRegistrationData')
           
           return { 
             success: true, 
@@ -138,15 +141,12 @@ export const useAuthStore = defineStore('auth', () => {
         remember: credentials.remember || false 
       }
       const response = await AuthApi.login(loginData)
-      
       // lấy dữ liệu từ response
-      const { user: userData, token: tokenData } = response.data
-      
+      const { user: userData, token: tokenData } = response.data.data
       // Update state
       user.value = userData
       token.value = tokenData
       isAuthenticated.value = true
-      
       // Save to localStorage và sessionStorage
       localStorage.setItem('token', tokenData)
       localStorage.setItem('user', JSON.stringify(userData))
@@ -162,9 +162,12 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.removeItem('remember_email')
       }
       
+      // Gọi checkAuth() để lấy thông tin user mới nhất từ server
+      await checkAuth()
+      
       message.success('Đăng nhập thành công!')
       
-      return { success: true, user: userData }
+      return { success: true, user: user.value }
       
     } catch (error) {
       console.error('Login error:', error)
@@ -368,6 +371,7 @@ export const useAuthStore = defineStore('auth', () => {
   const initAuth = async () => {
     // Kiểm tra xem có user trong localStorage không
     const storedUser = localStorage.getItem('user')
+    console.log('test storedUser', storedUser)
     if (storedUser && token.value) {
       try {
         const userData = JSON.parse(storedUser)

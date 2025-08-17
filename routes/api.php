@@ -53,11 +53,29 @@ Route::middleware('auth:sanctum')->group(function () {
     //Route::post('/change-password', [AuthController::class, 'changePassword']);
 });
 
+// User management routes với phân quyền
 ApiRoute::group([
     'middleware' => 'api',
     'namespace' => 'App\Http\Controllers',
 ], function () {
-    ApiRoute::middleware('auth:sanctum')->group(function () {
-        ApiRoute::resource('users', UserController::class);
+    ApiRoute::middleware(['auth:sanctum'])->group(function () {
+        // Tất cả user đã đăng nhập có thể xem danh sách (policy sẽ handle chi tiết)
+        ApiRoute::get('users', [UserController::class, 'index']);
+        ApiRoute::get('users/{id}', [UserController::class, 'show']);
+        
+        // Chỉ admin và super_admin mới có thể tạo user mới
+        ApiRoute::middleware(['role:admin,super_admin'])->group(function () {
+            ApiRoute::post('users', [UserController::class, 'store']);
+        });
+        
+        // Update và delete sẽ được policy handle chi tiết
+        ApiRoute::put('users/{id}', [UserController::class, 'update']);
+        ApiRoute::patch('users/{id}', [UserController::class, 'update']);
+        ApiRoute::delete('users/{id}', [UserController::class, 'destroy']);
     });
+});
+
+// Route cũ để tương thích ngược
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/users/paginate', [UserController::class, 'paginate']);
 });

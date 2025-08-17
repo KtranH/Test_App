@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Models\User;
 use Froiden\RestAPI\ApiController;
-use Illuminate\Support\Facades\Log;
 
 class UserController extends ApiController
 {
+    use AuthorizesRequests;
+    
     protected $model = User::class;
     
     /**
@@ -24,7 +27,16 @@ class UserController extends ApiController
     protected $maxLimit = 100;
 
     /**
-     * Sử dụng phân trang tự động của thư viện laravel-rest-api
+     * Constructor - đảm bảo user đã authenticate
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        $this->middleware('auth:sanctum');
+    }
+
+    /**
+     * Danh sách users với phân quyền
      * 
      * API Endpoints:
      * GET /api/users?limit=20&offset=0
@@ -36,12 +48,72 @@ class UserController extends ApiController
      */
     public function index()
     {
-        // Sử dụng phương thức index() có sẵn từ ApiController
-        // - fields: chọn trường cụ thể
-        // - filters: lọc dữ liệu  
-        // - order: sắp xếp
-        // - pagination: limit và offset
+        // Kiểm tra quyền xem danh sách user
+        $this->authorize('viewAny', User::class);
+        
         return parent::index();
+    }
+    
+    /**
+     * Hiển thị thông tin user cụ thể
+     */
+    public function show(...$args)
+    {
+        $id = $args[0] ?? null;
+        $user = User::findOrFail($id);
+        
+        // Kiểm tra quyền xem user này
+        $this->authorize('view', $user);
+        
+        return parent::show(...$args);
+    }
+
+    /**
+     * Tạo user mới
+     */
+    public function store()
+    {
+        // Kiểm tra quyền tạo user
+        $this->authorize('create', User::class);
+        
+        return parent::store();
+    }
+
+    /**
+     * Cập nhật user
+     */
+    public function update(...$args)
+    {
+        $id = null;
+        foreach ($args as $arg) {
+            if (is_numeric($arg) || (is_string($arg) && ctype_digit($arg))) {
+                $id = $arg;
+                break;
+            }
+        }
+        
+        if ($id) {
+            $user = User::findOrFail($id);
+            // Kiểm tra quyền cập nhật user này
+            $this->authorize('update', $user);
+        }
+        
+        return parent::update(...$args);
+    }
+
+    /**
+     * Xóa user
+     */
+    public function destroy(...$args)
+    {
+        Log::info('destroy', $args);
+        $id = $args[0] ?? null;
+        $user = User::findOrFail($id);
+        
+        // Kiểm tra quyền xóa user này
+        $this->authorize('delete', $user);
+        
+        return parent::destroy(...$args);
     }
     
     /**

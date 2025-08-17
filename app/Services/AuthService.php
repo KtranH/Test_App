@@ -128,12 +128,40 @@ class AuthService
     /**
      * Hàm lấy thông tin user
      * @param Request $request
-     * @return User
+     * @return User|null
      */
     public function me(Request $request)
     {
-        $user = $request->user();
-        return $user ?? null;
+        try {
+            // Thử lấy user từ Sanctum guard trước
+            $user = $request->user('sanctum');
+            
+            if (!$user) {
+                // Fallback: thử lấy từ default guard
+                $user = $request->user();
+            }
+            
+            if ($user) {
+                // Refresh thông tin user từ database để đảm bảo data mới nhất
+                $user = $user->fresh();
+                
+                Log::info('User me() successful', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $user->role
+                ]);
+            } else {
+                Log::warning('User me() - No user found');
+            }
+            
+            return $user;
+        } catch (\Exception $e) {
+            Log::error('Error in AuthService me()', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return null;
+        }
     }
 
     /**

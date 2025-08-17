@@ -157,7 +157,10 @@ onMounted(() => {
 // Handle form submission
 const onFinish = async (values) => {
   try {
-    await authStore.login(values)
+    const result = await authStore.login(values)
+    if (result && result.success) {
+      router.push('/')
+    }
     router.push('/')
   } catch (error) {
     console.error('Login error:', error)
