@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Models\User;
 use Froiden\RestAPI\ApiController;
@@ -106,13 +105,11 @@ class UserController extends ApiController
      */
     public function destroy(...$args)
     {
-        Log::info('destroy', $args);
         $id = $args[0] ?? null;
         $user = User::findOrFail($id);
         
         // Kiểm tra quyền xóa user này
         $this->authorize('delete', $user);
-        
         return parent::destroy(...$args);
     }
     

@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Gate;
 use App\Models\User;
 use App\Policies\UserPolicy;
 
@@ -26,7 +25,7 @@ class AuthServiceProvider extends ServiceProvider
         // Đăng ký policies
         $this->registerPolicies();
 
-        // Có thể thêm các Gate tùy chỉnh ở đây nếu cần
+        // Có thể thêm các Gate tùy chỉnh ở đây
         // Gate::define('admin-access', function (User $user) {
         //     return $user->canManage();
         // });
