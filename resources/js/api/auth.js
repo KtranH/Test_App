@@ -32,5 +32,11 @@ export const AuthApi = {
     // API change password
     changePassword: async (data) => {
         return apiClient.post('/change-password', data)
-    }
+    },
+    // 2FA APIs
+    twoFAStatus: async () => apiClient.get('/2fa/status'),
+    twoFAInitEnable: async () => apiClient.post('/2fa/init-enable'),
+    twoFAConfirmEnable: async (data) => apiClient.post('/2fa/confirm-enable', data),
+    twoFADisable: async (data) => apiClient.post('/2fa/disable', data),
+    twoFAVerifyLogin: async (data) => apiClient.post('/2fa/verify-login', data)
 }

@@ -211,16 +211,8 @@
             </div>
           </div>
         </div>
-        
-        <!-- Logout -->
-        <div class="px-4 sm:px-0" data-aos="fade-up" data-aos-delay="500">
-          <div class="card">
-            <button @click="logout" class="btn-danger flex items-center gap-2">
-              <LogOut class="w-4 h-4" />
-              Đăng xuất
-            </button>
-          </div>
-        </div>
+        <!-- Footer -->
+        <Footer />
       </main>
     </div>
   </PageTransition>
@@ -234,6 +226,7 @@ import { useAuthStore } from '@/stores/authStore.js'
 import { Users, CheckCircle, Clock, Eye, LogOut } from 'lucide-vue-next'
 import ApiUser from '@/components/User/apiUser.vue'
 import PageTransition from '@/components/UI/PageTransition.vue'
+import Footer from '@/components/Layout/Footer.vue'
 
 const userStore = useUserStore()
 const authStore = useAuthStore()
@@ -300,14 +293,6 @@ const formatDate = (dateString) => {
 
 const refreshUserInfo = async () => {
   await authStore.initAuth()
-}
-
-const logout = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
-  sessionStorage.removeItem('token')
-  sessionStorage.removeItem('user')
-  router.push('/login')
 }
 
 onMounted(async () => {

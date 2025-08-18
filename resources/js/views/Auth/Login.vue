@@ -158,10 +158,15 @@ onMounted(() => {
 const onFinish = async (values) => {
   try {
     const result = await authStore.login(values)
+    if (result?.requires2FA) {
+      message.info('Vui lòng nhập OTP để hoàn tất đăng nhập')
+      router.push({ name: 'TwoFactorVerify', query: { challengeId: result.challengeId } })
+      return
+    }
     if (result && result.success) {
       router.push('/')
+      return
     }
-    router.push('/')
   } catch (error) {
     console.error('Login error:', error)
     message.error('Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập!')

@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Auth;
 
 class AuthService
 {
@@ -123,6 +124,7 @@ class AuthService
      */
     public function logout(Request $request)
     {
+        Auth::logout();
         $user = $request->user();
         if ($user) $user->tokens()->delete();
         Log::info('User đăng xuất thành công', ['user_id' => $user->id]);
@@ -136,6 +138,7 @@ class AuthService
     public function me(Request $request)
     {
         try {
+            // Kiểm tra user có tồn tại không
             $user = $request->user('sanctum') ?? $request->user();
             return $user?->fresh();
         } catch (\Exception $e) {

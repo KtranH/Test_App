@@ -63,7 +63,6 @@ class UserController extends ApiController
         
         // Kiểm tra quyền xem user này
         $this->authorize('view', $user);
-        
         return parent::show(...$args);
     }
 
@@ -74,7 +73,6 @@ class UserController extends ApiController
     {
         // Kiểm tra quyền tạo user
         $this->authorize('create', User::class);
-        
         return parent::store();
     }
 
@@ -96,7 +94,6 @@ class UserController extends ApiController
             // Kiểm tra quyền cập nhật user này
             $this->authorize('update', $user);
         }
-        
         return parent::update(...$args);
     }
 

@@ -292,6 +292,8 @@
             </div>
           </div>
         </div>
+        <!-- Footer -->
+        <Footer />
       </main>
 
       <!-- Delete Confirmation Modal -->
@@ -299,40 +301,13 @@
         v-if="showDeleteModal"
         class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
       >
-        <div
-          class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
-        >
-          <div class="mt-3 text-center">
-            <div
-              class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100"
-            >
-              <AlertTriangle class="h-6 w-6 text-red-600" />
-            </div>
-            <h3 class="text-lg font-medium text-gray-900 mt-4">Xác nhận xóa</h3>
-            <div class="mt-2 px-7 py-3">
-              <p class="text-sm text-gray-500">
-                Bạn có chắc chắn muốn xóa user "{{ userToDelete?.name }}" không?
-                Hành động này không thể hoàn tác.
-              </p>
-            </div>
-            <div class="flex justify-center space-x-3 mt-4">
-              <button
-                @click="showDeleteModal = false"
-                class="btn-secondary flex items-center gap-2"
-              >
-                <X class="w-4 h-4" />
-                Hủy
-              </button>
-              <button
-                @click="deleteUser"
-                class="btn-danger flex items-center gap-2"
-              >
-                <Trash2 class="w-4 h-4" />
-                Xóa
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmShow
+          title="Xác nhận xóa"
+          description="Bạn có chắc chắn muốn xóa user này không?"
+          buttonText="Xóa"
+          @cancel="showDeleteModal = false"
+          @confirm="deleteUser"
+        />
       </div>
     </div>
   </PageTransition>
@@ -346,7 +321,8 @@ import TableUser from "@/components/User/tableUser.vue";
 import LoadingUser from "@/components/User/loadingUser.vue";
 import DebugShow from "@/components/UI/DebugShow.vue";
 import AlertUser from "@/components/User/alertUser.vue";
-import ConfirmModalUser from "@/components/User/confirmModalUser.vue";
+import Footer from "@/components/Layout/Footer.vue";
+import ConfirmShow from "@/components/UI/ConfirmShow.vue";
 import {
   Plus,
   Search,
@@ -357,6 +333,7 @@ import {
   X,
 } from "lucide-vue-next";
 import PageTransition from "@/components/UI/PageTransition.vue";
+
 const userStore = useUserStore();
 const searchQuery = ref("");
 const searchQueryAllDB = ref("")
@@ -412,9 +389,15 @@ watch(
   { deep: true }
 );
 
-const confirmDelete = (user) => {
+const confirmDelete = async (user) => {
   userToDelete.value = user;
   showDeleteModal.value = true;
+
+  // Focus vào modal
+  await nextTick();
+  if (confirmModalRef.value) {
+    confirmModalRef.value.focusModal();
+  }
 };
 
 const deleteUser = async () => {

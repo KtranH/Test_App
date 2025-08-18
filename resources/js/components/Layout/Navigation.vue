@@ -31,6 +31,14 @@
               <Palette class="w-4 h-4" />
               Icons
             </router-link>
+            <router-link 
+              to="/settings/2fa" 
+              class="text-gray-900 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+              :class="{ 'bg-gray-100 text-gray-900': $route.name === 'TwoFactorSettings' }"
+            >
+              <Shield class="w-4 h-4" />
+              2FA
+            </router-link>
           </div>
         </div>
         
@@ -49,5 +57,5 @@
 </template>
 
 <script setup>
-import { LayoutDashboard, Users, User, Palette } from 'lucide-vue-next'
+import { LayoutDashboard, Users, User, Palette, Shield } from 'lucide-vue-next'
 </script>

@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\TwoFactorController;
 use Froiden\RestAPI\Facades\ApiRoute;
 
 /*
@@ -51,6 +52,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/refresh', [AuthController::class, 'refresh']);
     //Route::put('/profile', [AuthController::class, 'updateProfile']);
     //Route::post('/change-password', [AuthController::class, 'changePassword']);
+
+    // Two-Factor routes (enable/disable)
+    Route::get('/2fa/status', [TwoFactorController::class, 'status']);
+    Route::post('/2fa/init-enable', [TwoFactorController::class, 'initEnable']);
+    Route::post('/2fa/confirm-enable', [TwoFactorController::class, 'confirmEnable']);
+    Route::post('/2fa/disable', [TwoFactorController::class, 'disable']);
 });
 
 // User management routes với phân quyền
@@ -79,3 +86,6 @@ ApiRoute::group([
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/users/paginate', [UserController::class, 'paginate']);
 });
+
+// 2FA verify after login challenge (no auth token yet)
+Route::post('/2fa/verify-login', [TwoFactorController::class, 'verifyLogin']);

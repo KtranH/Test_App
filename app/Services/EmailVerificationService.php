@@ -14,8 +14,8 @@ class EmailVerificationService
 {
     private const VERIFICATION_PREFIX = 'email_verification:';
     private const RESEND_PREFIX = 'resend_count:';
-    private const MAX_RESEND_ATTEMPTS = 2; // tối đa 2 lần gửi lại mã xác thực trong 10 phút
-    private const RESEND_WINDOW_MINUTES = 10; // gửi lại mã xác thực trong 10 phút
+    private const MAX_RESEND_ATTEMPTS = 2; // tối đa 2 lần gửi lại mã xác thực trong 3 phút
+    private const RESEND_WINDOW_MINUTES = 3; // gửi lại mã xác thực trong 3 phút
     private const VERIFICATION_EXPIRE_MINUTES = 15; // mã xác thực có hiệu lực trong 15 phút
 
     /**

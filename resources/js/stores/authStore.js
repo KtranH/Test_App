@@ -2,9 +2,10 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { AuthApi } from '@/api/index.js'
-
+import { useRouter } from 'vue-router'
 export const useAuthStore = defineStore('auth', () => {
   // State
+  const router = useRouter()
   const user = ref(null)
   const token = ref(localStorage.getItem('token') || null)
   const tokenExpiry = ref(localStorage.getItem('token_expiry') || null)
@@ -143,6 +144,15 @@ export const useAuthStore = defineStore('auth', () => {
       }
       const response = await AuthApi.login(loginData)
       
+      // Nếu backend yêu cầu 2FA
+      if (response.data?.data?.requires_2fa) {
+        return {
+          success: false,
+          requires2FA: true,
+          challengeId: response.data.data.challenge_id
+        }
+      }
+
       // lấy dữ liệu từ response
       const { user: userData, token: tokenData, expires_at } = response.data.data
       
@@ -214,6 +224,20 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   //----------------------------------
+  // Hàm clear auth data
+  //----------------------------------
+  const clearLocalStorageAuthData = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('token_expiry')
+    localStorage.removeItem('user')
+  }
+  const clearSessionStorageAuthData = () => {
+    sessionStorage.removeItem('token')
+    sessionStorage.removeItem('token_expiry')
+    sessionStorage.removeItem('user')
+  }
+
+  //----------------------------------
   // Hàm đăng xuất
   //----------------------------------
   const logout = async () => {
@@ -230,17 +254,13 @@ export const useAuthStore = defineStore('auth', () => {
       isAuthenticated.value = false 
       
       // Clear localStorage và sessionStorage
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      localStorage.removeItem('token_expiry')
-      sessionStorage.removeItem('token')
-      sessionStorage.removeItem('user')
-      
+      clearLocalStorageAuthData()
+      clearSessionStorageAuthData()      
       // Xóa remember me data khi đăng xuất
       clearRememberMe()
-      
+
       message.success('Đăng xuất thành công!')
-      
+      router.push('/login')
     } catch (error) {
       console.error('Logout error:', error)
       // Vẫn clear state ngay cả khi API call thất bại
@@ -248,11 +268,8 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = null
       tokenExpiry.value = null
       isAuthenticated.value = false 
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      localStorage.removeItem('token_expiry')
-      sessionStorage.removeItem('token')
-      sessionStorage.removeItem('user')
+      clearLocalStorageAuthData()
+      clearSessionStorageAuthData()
       // Xóa remember me data
       clearRememberMe()
     } finally {
@@ -280,8 +297,8 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = null
         token.value = null
         isAuthenticated.value = false
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
+        clearLocalStorageAuthData()
+        clearSessionStorageAuthData()
         return false
       }
     } catch (error) {
@@ -290,8 +307,8 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       token.value = null
       isAuthenticated.value = false
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      clearLocalStorageAuthData()
+      clearSessionStorageAuthData()
       return false
     }
   }
@@ -457,6 +474,8 @@ export const useAuthStore = defineStore('auth', () => {
     initAuth,
     checkRememberMe,
     clearRememberMe,
-    autoRefreshToken
+    autoRefreshToken,
+    clearLocalStorageAuthData,
+    clearSessionStorageAuthData
   }
 })

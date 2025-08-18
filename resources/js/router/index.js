@@ -7,6 +7,8 @@ import IconShowcase from '@/components/UI/IconShowcase.vue'
 import Login from '@/views/Auth/Login.vue'
 import Register from '@/views/Auth/Register.vue'
 import EmailVerification from '@/views/Auth/EmailVerification.vue'
+import TwoFactorVerify from '@/views/Auth/TwoFactorVerify.vue'
+import TwoFactorSettings from '@/views/Dashboard/TwoFactorSettings.vue'
 import NotFound from '@/views/Errors/404Error.vue'
 import ServerError from '@/views/Errors/500Error.vue'
 
@@ -14,6 +16,18 @@ const routes = [
   {
     path: '/',
     redirect: '/dashboard'
+  },
+  {
+    path: '/2fa/verify',
+    name: 'TwoFactorVerify',
+    component: TwoFactorVerify,
+    meta: { requiresGuest: true, transition: 'slide-left' }
+  },
+  {
+    path: '/settings/2fa',
+    name: 'TwoFactorSettings',
+    component: TwoFactorSettings,
+    meta: { requiresAuth: true, transition: 'slide-right' }
   },
   {
     path: '/login',

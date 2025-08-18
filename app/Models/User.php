@@ -28,6 +28,7 @@ class User extends ApiModel implements AuthenticatableContract
         'password',
         'role',
         'status',
+        'google2fa_secret',
     ];
 
     /**
@@ -36,7 +37,6 @@ class User extends ApiModel implements AuthenticatableContract
      * @var list<string>
      */
     protected $hidden = [
-        'password',
         'remember_token',
     ];
 

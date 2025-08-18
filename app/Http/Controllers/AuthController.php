@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Requests\AuthRequest;
 use App\Http\Requests\EmailVerificationRequest;
 use App\Services\AuthService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -67,8 +69,25 @@ class AuthController extends Controller
             
             // Lấy remember status từ request
             $remember = $request->boolean('remember');
-   
-            // Đăng nhập với remember parameter
+            
+            // Nếu user đã bật 2FA thì trả về challenge để xác thực OTP
+            if (!empty($user->google2fa_secret)) {
+                $challengeId = (string) Str::uuid();
+                Cache::put('2fa:login:' . $challengeId, [
+                    'user_id' => $user->id,
+                    'remember' => $remember,
+                ], now()->addMinutes(5));
+
+                // Thoát session login để tránh giữ session khi chưa qua 2FA
+                Auth::guard('web')->logout();
+
+                return $this->success('Yêu cầu xác thực 2FA', [
+                    'requires_2fa' => true,
+                    'challenge_id' => $challengeId,
+                ]);
+            }
+
+            // Đăng nhập với remember parameter khi không bật 2FA
             [$token, $user, $expiresAt] = $this->authService->login($user, $remember);
 
             $data = [
