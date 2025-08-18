@@ -36,6 +36,7 @@ class User extends ApiModel implements AuthenticatableContract
      * @var list<string>
      */
     protected $hidden = [
+        'password',
         'remember_token',
     ];
 

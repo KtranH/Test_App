@@ -92,13 +92,13 @@ class AuthService
      */
     public function login(User $user, bool $remember = false)
     {
-        // Tạo token mới
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Tạo token mới với expiration 60 phút
+        $token = $user->createToken('auth_token', ['*'], now()->addMinutes(60))->plainTextToken;
         
         // Xử lý remember me nếu được yêu cầu
         if ($remember) {
-            // Laravel sẽ tự động xử lý remember_token
-            // Không cần làm gì thêm vì đã được xử lý trong Auth::attempt
+            // Tăng expiration token lên 10080 phút (7 ngày)
+            $token = $user->createToken('auth_token', ['*'], now()->addMinutes(10080))->plainTextToken;
             Log::info('User đăng nhập thành công với Remember Me', [
                 'user_id' => $user->id, 
                 'email' => $user->email,
@@ -111,7 +111,10 @@ class AuthService
             ]);
         }
         
-        return [$token, $user];
+        // Lấy thông tin expiration từ token
+        $tokenModel = $user->tokens()->latest()->first();
+        
+        return [$token, $user, $tokenModel->expires_at];
     }
 
     /**
@@ -133,28 +136,8 @@ class AuthService
     public function me(Request $request)
     {
         try {
-            // Thử lấy user từ Sanctum guard trước
-            $user = $request->user('sanctum');
-            
-            if (!$user) {
-                // Fallback: thử lấy từ default guard
-                $user = $request->user();
-            }
-            
-            if ($user) {
-                // Refresh thông tin user từ database để đảm bảo data mới nhất
-                $user = $user->fresh();
-                
-                Log::info('User me() successful', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                    'role' => $user->role
-                ]);
-            } else {
-                Log::warning('User me() - No user found');
-            }
-            
-            return $user;
+            $user = $request->user('sanctum') ?? $request->user();
+            return $user?->fresh();
         } catch (\Exception $e) {
             Log::error('Error in AuthService me()', [
                 'error' => $e->getMessage(),
@@ -166,19 +149,28 @@ class AuthService
 
     /**
      * Hàm làm mới token
-     * @param User $user
-     * @return string
+     * @param Request $request
+     * @return array|null
      */
     public function refreshToken(Request $request)
     {
         $user = $request->user();
         if (!$user) return null;
+        
         // Xóa token cũ
         $user->currentAccessToken()->delete();
         
-        // Tạo token mới
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Tạo token mới với expiration 60 phút
+        $token = $user->createToken('auth_token', ['*'], now()->addMinutes(60))->plainTextToken;
+        
+        // Lấy thông tin expiration
+        $tokenModel = $user->tokens()->latest()->first();
+        
         Log::info('Token refreshed thành công', ['user_id' => $user->id]);
-        return $token;
+        
+        return [
+            'token' => $token,
+            'expires_at' => $tokenModel->expires_at
+        ];
     }
 }

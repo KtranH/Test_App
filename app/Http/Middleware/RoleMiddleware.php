@@ -7,9 +7,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 use App\Models\User;
+use App\Traits\ApiResponse;
 
 class RoleMiddleware
 {
+    use ApiResponse;
+    
     /**
      * Handle an incoming request.
      * 
@@ -23,10 +26,7 @@ class RoleMiddleware
     {
         // Kiểm tra user đã đăng nhập chưa
         if (!Auth::check()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated - Vui lòng đăng nhập',
-            ], 401);
+            return $this->error('Unauthenticated - Vui lòng đăng nhập', null, 401);
         }
 
         /** @var User $user */
@@ -34,10 +34,7 @@ class RoleMiddleware
 
         // Kiểm tra trạng thái tài khoản
         if ($user->status !== 'active') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Account is not active - Tài khoản không hoạt động',
-            ], 403);
+            return $this->error('Account is not active - Tài khoản không hoạt động', null, 403);
         }
 
         // Nếu không có role nào được chỉ định, chỉ cần authenticated
@@ -47,12 +44,11 @@ class RoleMiddleware
 
         // Kiểm tra user có role phù hợp không
         if (!$user->hasAnyRole($roles)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Insufficient permissions - Không đủ quyền truy cập',
+            $data = [
                 'required_roles' => $roles,
                 'user_role' => $user->role,
-            ], 403);
+            ];
+            return $this->error('Insufficient permissions - Không đủ quyền truy cập', $data, 403);
         }
 
         return $next($request);

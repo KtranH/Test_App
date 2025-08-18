@@ -7,6 +7,7 @@ export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref(null)
   const token = ref(localStorage.getItem('token') || null)
+  const tokenExpiry = ref(localStorage.getItem('token_expiry') || null)
   const isAuthenticated = ref(!!token.value)
   const isLoading = ref(false)
 
@@ -141,15 +142,22 @@ export const useAuthStore = defineStore('auth', () => {
         remember: credentials.remember || false 
       }
       const response = await AuthApi.login(loginData)
+      
       // lấy dữ liệu từ response
-      const { user: userData, token: tokenData } = response.data.data
+      const { user: userData, token: tokenData, expires_at } = response.data.data
+      
       // Update state
       user.value = userData
       token.value = tokenData
+      tokenExpiry.value = expires_at
       isAuthenticated.value = true
+      
       // Save to localStorage và sessionStorage
       localStorage.setItem('token', tokenData)
       localStorage.setItem('user', JSON.stringify(userData))
+      if (expires_at) {
+        localStorage.setItem('token_expiry', expires_at)
+      }
       sessionStorage.setItem('token', tokenData)
       sessionStorage.setItem('user', JSON.stringify(userData))
       
@@ -218,11 +226,13 @@ export const useAuthStore = defineStore('auth', () => {
       // Clear state
       user.value = null
       token.value = null
+      tokenExpiry.value = null
       isAuthenticated.value = false 
       
       // Clear localStorage và sessionStorage
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      localStorage.removeItem('token_expiry')
       sessionStorage.removeItem('token')
       sessionStorage.removeItem('user')
       
@@ -236,9 +246,11 @@ export const useAuthStore = defineStore('auth', () => {
       // Vẫn clear state ngay cả khi API call thất bại
       user.value = null
       token.value = null
+      tokenExpiry.value = null
       isAuthenticated.value = false 
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      localStorage.removeItem('token_expiry')
       sessionStorage.removeItem('token')
       sessionStorage.removeItem('user')
       // Xóa remember me data
@@ -293,14 +305,16 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await AuthApi.refresh()
       if (response.data.success) {
-        const { token: tokenData } = response.data.data
+        const { token: tokenData, expires_at } = response.data.data
         token.value = tokenData
+        tokenExpiry.value = expires_at
         
         // Update localStorage
         localStorage.setItem('token', tokenData)
-        
+        if (expires_at) {
+          localStorage.setItem('token_expiry', expires_at)
+        }      
         message.success('Token refreshed thành công!')
-        
       } else {
         message.error('Token refresh thất bại!')
       }
@@ -371,32 +385,64 @@ export const useAuthStore = defineStore('auth', () => {
   const initAuth = async () => {
     // Kiểm tra xem có user trong localStorage không
     const storedUser = localStorage.getItem('user')
-    console.log('test storedUser', storedUser)
+    const storedExpiry = localStorage.getItem('token_expiry')
+    
     if (storedUser && token.value) {
       try {
         const userData = JSON.parse(storedUser)
         user.value = userData
+        tokenExpiry.value = storedExpiry
         isAuthenticated.value = true
       } catch (error) {
         console.error('Error parsing stored user:', error)
         localStorage.removeItem('user')
+        localStorage.removeItem('token_expiry')
       }
     }
-    
-    // Sau đó kiểm tra token với server
     await checkAuth()
+  }
+
+  //----------------------------------
+  // Hàm kiểm tra token sắp hết hạn
+  //----------------------------------
+  const isTokenExpiringSoon = computed(() => {
+    if (!tokenExpiry.value) return false
+    const expiryTime = new Date(tokenExpiry.value)
+    const now = new Date()
+    const timeUntilExpiry = expiryTime.getTime() - now.getTime()
+    const minutesUntilExpiry = timeUntilExpiry / (1000 * 60)
+    
+    // Trả về true nếu token hết hạn trong vòng 5 phút
+    return minutesUntilExpiry <= 5
+  })
+
+  //----------------------------------
+  // Hàm tự động refresh token
+  //----------------------------------
+  const autoRefreshToken = async () => {
+    if (isTokenExpiringSoon.value && token.value && !isLoading.value) {
+      try {
+        await refresh()
+      } catch (error) {
+        console.error('Auto refresh failed:', error)
+        // Nếu refresh thất bại, logout user
+        await logout()
+      }
+    }
   }
 
   return {
     // State
     user,
     token,
+    tokenExpiry,
     isAuthenticated,
     isLoading,
     
     // Getters
     currentUser,
     isLoggedIn,
+    isTokenExpiringSoon,
     
     // Actions
     sendVerificationCode,
@@ -410,6 +456,7 @@ export const useAuthStore = defineStore('auth', () => {
     changePassword,
     initAuth,
     checkRememberMe,
-    clearRememberMe
+    clearRememberMe,
+    autoRefreshToken
   }
 })

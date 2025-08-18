@@ -53,19 +53,7 @@ class ApiMiddleware
         // if ($hasCSRF) $protectionStatus[] = 'CSRF';
         if ($hasSanctum) $protectionStatus[] = 'Sanctum';
         
-        $protectionString = empty($protectionStatus) ? 'None' : implode('+', $protectionStatus);
-        
-        \Log::info("🔐 Double Protection Status", [
-            'method' => $method,
-            'uri' => $uri,
-            'protection' => $protectionString,
-            'is_protected_endpoint' => $isProtectedEndpoint,
-            // COMMENT: Tạm thời comment lại để test SPA không cần CSRF
-            // 'csrf_present' => $hasCSRF,
-            'sanctum_present' => $hasSanctum,
-            'user_agent' => $request->userAgent(),
-            'ip' => $request->ip()
-        ]);
+        $protectionString = empty($protectionStatus) ? 'None' : implode('+', $protectionStatus);    
     }
     
     /**

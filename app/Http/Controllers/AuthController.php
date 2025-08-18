@@ -54,7 +54,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Hàm đăng nhập
+     * Đăng nhập
      * @param AuthRequest $request
      * @return JsonResponse
      */
@@ -67,11 +67,16 @@ class AuthController extends Controller
             
             // Lấy remember status từ request
             $remember = $request->boolean('remember');
-            
+   
             // Đăng nhập với remember parameter
-            [$token, $user] = $this->authService->login($user, $remember);
-            return $this->success('Đăng nhập thành công', ['token' => $token, 'user' => $user]);
+            [$token, $user, $expiresAt] = $this->authService->login($user, $remember);
 
+            $data = [
+                'token' => $token, 
+                'user' => $user, 
+                'expires_at' => $expiresAt?->toISOString()
+            ];
+            return $this->success('Đăng nhập thành công', $data);
         } catch (\Exception $e) {
             Log::error('Đăng nhập thất bại', ['error' => $e->getMessage()]);
             return $this->error('Đăng nhập thất bại: ' . $e->getMessage(), null, 500);
@@ -121,10 +126,14 @@ class AuthController extends Controller
     public function refresh(Request $request): JsonResponse
     {
         try {
-            $token = $this->authService->refreshToken($request);
-            if (!$token) return $this->error('Unauthenticated', null, 401);
+            $result = $this->authService->refreshToken($request);
+            if (!$result) return $this->error('Unauthenticated', null, 401);
+            
             Log::info('Token refreshed thành công');
-            return $this->success('Token refreshed thành công', ['token' => $token]);
+            return $this->success('Token refreshed thành công', [
+                'token' => $result['token'],
+                'expires_at' => $result['expires_at']?->toISOString()
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Token refresh thất bại', ['error' => $e->getMessage()]);

@@ -39,11 +39,15 @@ import { useRoute } from 'vue-router'
 import Navigation from '@/components/Layout/Navigation.vue'
 import Loading from '@/components/UI/Loading.vue'
 import { useLoadingStore } from '@/stores/loadingStore'
+import { useAuth } from '@/composable/useAuth'
 import AOS from 'aos'
 
 // Hàm kiểm tra url không phải là /login hoặc /register để tắt header
 const route = useRoute()
 const loadingStore = useLoadingStore()
+
+// Kích hoạt auto refresh token
+useAuth()
 
 const isLoginOrRegister = computed(() => {
   return route.path === '/login' || route.path === '/register' || route.path === '/forgot-password' || route.path === '/reset-password' || route.path === '/email-verification'
