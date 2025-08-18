@@ -1,14 +1,13 @@
 <?php 
 
 namespace App\Services;
-use App\Http\Requests\AuthRequest;
-use App\Http\Requests\EmailVerificationRequest;
 use App\Interfaces\UserRepositoryInterface;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class AuthService
 {
@@ -119,12 +118,33 @@ class AuthService
     }
 
     /**
+     * Hàm đăng nhập với 2FA
+     * @param User $user
+     * @param bool $remember
+     * @return array
+     */
+    public function loginWith2FA(User $user, bool $remember = false)
+    {
+        $challengeId = (string) Str::uuid();
+        Cache::put('2fa:login:' . $challengeId, [
+            'user_id' => $user->id,
+            'remember' => $remember,
+        ], now()->addMinutes(5));
+
+        // Thoát session login để tránh giữ session khi chưa qua 2FA
+        Auth::guard('web')->logout();   
+
+        return [
+            'challenge_id' => $challengeId,
+        ];
+    }
+
+    /**
      * Hàm đăng xuất
      * @param Request $request
      */
     public function logout(Request $request)
     {
-        Auth::logout();
         $user = $request->user();
         if ($user) $user->tokens()->delete();
         Log::info('User đăng xuất thành công', ['user_id' => $user->id]);

@@ -4,153 +4,148 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\TwoFaRequest;
 use Illuminate\Support\Facades\Log;
-use PragmaRX\Google2FA\Google2FA;
-use App\Services\AuthService;
-use App\Models\User;
+use App\Services\TwoFactorService;
 
 class TwoFactorController extends Controller
 {
+    public function __construct(
+        private TwoFactorService $twoFactorService
+    ) {}
+
     /**
      * Trả trạng thái 2FA cho user hiện tại
+     * @param Request $request
+     * @return JsonResponse
      */
     public function status(Request $request): JsonResponse
     {
-        $user = $request->user();
-        return $this->success('Lấy trạng thái 2FA thành công', [
-            'enabled' => !empty($user?->google2fa_secret),
-        ]);
+        try{
+            $user = $request->user();
+            return $this->success('Lấy trạng thái 2FA thành công', [
+                'enabled' => !empty($user?->google2fa_secret),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Lấy trạng thái 2FA thất bại', ['error' => $e->getMessage()]);
+            return $this->error('Lấy trạng thái 2FA thất bại: ' . $e->getMessage(), null, 500);
+        }
     }
 
     /**
      * Bước 1: Khởi tạo bật 2FA - tạo secret tạm thời và trả về otpauth URL
+     * @param Request $request
+     * @return JsonResponse
      */
     public function initEnable(Request $request): JsonResponse
     {
-        $user = $request->user();
-        if (!$user) return $this->error('Unauthenticated', null, 401);
+        try
+        {
+            $user = $request->user();
+            // Kiểm tra user đã xác thực chưa
+            $checkUser = $this->twoFactorService->isUserAuthenticated($user);
+            if (!$checkUser) return $this->error('Unauthenticated', null, 401);
 
-        if (!empty($user->google2fa_secret)) {
-            return $this->error('2FA đã được bật. Vui lòng tắt trước khi bật lại.', null, 400);
+            // Kiểm tra user đã bật 2FA chưa
+            $checkUserEnabled2FA = $this->twoFactorService->isUserEnabled2FA($user);
+            if ($checkUserEnabled2FA) return $this->error('2FA đã được bật. Vui lòng tắt trước khi bật lại.', null, 400);
+
+            // Khởi tạo 2FA
+            $result = $this->twoFactorService->initEnable($user);
+            if (!$result) return $this->error('Khởi tạo 2FA thất bại', null, 500);
+
+            $data = [
+                'secret' => $result['secret'],
+                'otpauth_url' => $result['otpauth_url'],
+            ];
+
+            return $this->success('Khởi tạo 2FA thành công', $data);
         }
-
-        $google2fa = new Google2FA();
-        $secret = $google2fa->generateSecretKey(32);
-
-        $issuer = config('app.name');
-        $otpauthUrl = $google2fa->getQRCodeUrl($issuer, $user->email, $secret);
-
-        // Lưu secret tạm trong cache 10 phút
-        Cache::put($this->getSetupCacheKey($user->id), $secret, now()->addMinutes(10));
-
-        return $this->success('Khởi tạo 2FA thành công', [
-            'secret' => $secret,
-            'otpauth_url' => $otpauthUrl,
-        ]);
+        catch (\Exception $e) {
+            Log::error('Khởi tạo 2FA thất bại', ['error' => $e->getMessage()]);
+            return $this->error('Khởi tạo 2FA thất bại: ' . $e->getMessage(), null, 500);
+        }
     }
 
     /**
      * Bước 2: Xác nhận bật 2FA bằng OTP
+     * @param TwoFaRequest $request
+     * @return JsonResponse
      */
-    public function confirmEnable(Request $request): JsonResponse
+    public function confirmEnable(TwoFaRequest $request): JsonResponse
     {
-        $request->validate([
-            'otp' => 'required|string',
-        ]);
-
-        $user = $request->user();
-        if (!$user) return $this->error('Unauthenticated', null, 401);
-
-        if (!empty($user->google2fa_secret)) {
-            return $this->error('2FA đã được bật.', null, 400);
+        try
+        {
+            $user = $request->user();
+            // Kiểm tra user đã xác thực chưa
+            $checkUser = $this->twoFactorService->isUserAuthenticated($user);
+            if (!$checkUser) return $this->error('Unauthenticated', null, 401);
+    
+            // Kiểm tra user đã bật 2FA chưa
+            $checkUserEnabled2FA = $this->twoFactorService->isUserEnabled2FA($user);
+            if ($checkUserEnabled2FA) return $this->error('2FA đã được bật. Vui lòng tắt trước khi bật lại.', null, 400);
+    
+            // Xác nhận bật 2FA
+            $result = $this->twoFactorService->confirmEnable($user, $request->input('otp'));
+            if (!$result) return $this->error('Xác nhận bật 2FA thất bại', null, 500);
+    
+            return $this->success('Bật 2FA thành công', ['enabled' => true]);   
         }
-
-        $secret = Cache::get($this->getSetupCacheKey($user->id));
-        if (!$secret) return $this->error('Phiên thiết lập 2FA đã hết hạn. Vui lòng khởi tạo lại.', null, 400);
-
-        $google2fa = new Google2FA();
-        $isValid = $google2fa->verifyKey($secret, $request->input('otp'));
-        if (!$isValid) return $this->error('OTP không hợp lệ.', null, 422);
-
-        // Lưu secret vào database và xóa cache tạm
-        $user->google2fa_secret = $secret;
-        $user->save();
-        Cache::forget($this->getSetupCacheKey($user->id));
-
-        return $this->success('Bật 2FA thành công', ['enabled' => true]);
+        catch (\Exception $e) {
+            Log::error('Xác nhận bật 2FA thất bại', ['error' => $e->getMessage()]);
+            return $this->error('Xác nhận bật 2FA thất bại: ' . $e->getMessage(), null, 500);
+        }
     }
 
     /**
      * Tắt 2FA sau khi xác thực OTP hiện tại
+     * @param TwoFaRequest $request
+     * @return JsonResponse
      */
-    public function disable(Request $request): JsonResponse
+    public function disable(TwoFaRequest $request): JsonResponse
     {
-        $request->validate([
-            'otp' => 'required|string',
-        ]);
+        try
+        {
+            $user = $request->user();
+            // Kiểm tra user đã xác thực chưa
+            $checkUser = $this->twoFactorService->isUserAuthenticated($user);
+            if (!$checkUser) return $this->error('Unauthenticated', null, 401);
 
-        $user = $request->user();
-        if (!$user) return $this->error('Unauthenticated', null, 401);
-        if (empty($user->google2fa_secret)) return $this->error('2FA chưa được bật.', null, 400);
+            // Kiểm tra user đã bật 2FA chưa
+            $checkUserEnabled2FA = $this->twoFactorService->isUserEnabled2FA($user);
+            if (!$checkUserEnabled2FA) return $this->error('2FA chưa được bật.', null, 400);
 
-        $google2fa = new Google2FA();
-        $isValid = $google2fa->verifyKey($user->google2fa_secret, $request->input('otp'));
-        if (!$isValid) return $this->error('OTP không hợp lệ.', null, 422);
+            // Tắt 2FA
+            $result = $this->twoFactorService->disable($user, $request->input('otp'));
+            if (!$result) return $this->error('Tắt 2FA thất bại', null, 500);   
 
-        $user->google2fa_secret = null;
-        $user->save();
-
-        return $this->success('Tắt 2FA thành công', ['enabled' => false]);
+            return $this->success('Tắt 2FA thành công', ['enabled' => false]);
+        }
+        catch (\Exception $e) {
+            Log::error('Tắt 2FA thất bại', ['error' => $e->getMessage()]);
+            return $this->error('Tắt 2FA thất bại: ' . $e->getMessage(), null, 500);
+        }
     }
 
     /**
      * Xác thực OTP cho bước đăng nhập (khi 2FA bật)
+     * @param TwoFaRequest $request
+     * @return JsonResponse
      */
-    public function verifyLogin(Request $request): JsonResponse
+    public function verifyLogin(TwoFaRequest $request): JsonResponse
     {
-        $request->validate([
-            'challenge_id' => 'required|string',
-            'otp' => 'required|string',
-        ]);
+        try
+        {
+            $result = $this->twoFactorService->verifyLogin($request);   
+        
+            if ($result === 400) return $this->error('Phiên xác thực 2FA không hợp lệ hoặc đã hết hạn.', null, 400);
+            if ($result === 422) return $this->error('OTP không hợp lệ.', null, 422);
 
-        $cacheKey = $this->getLoginCacheKey($request->input('challenge_id'));
-        $payload = Cache::get($cacheKey);
-        if (!$payload) return $this->error('Phiên xác thực 2FA không hợp lệ hoặc đã hết hạn.', null, 400);
-
-        $userId = $payload['user_id'] ?? null;
-        $remember = (bool)($payload['remember'] ?? false);
-        if (!$userId) return $this->error('Phiên xác thực không hợp lệ.', null, 400);
-
-        $user = User::find($userId);
-        if (!$user || empty($user->google2fa_secret)) return $this->error('User không hợp lệ hoặc chưa bật 2FA.', null, 400);
-
-        $google2fa = new Google2FA();
-        $isValid = $google2fa->verifyKey($user->google2fa_secret, $request->input('otp'));
-        if (!$isValid) return $this->error('OTP không hợp lệ.', null, 422);
-
-        // Đã xác thực thành công -> cấp token và xóa cache challenge
-        Cache::forget($cacheKey);
-
-        // Đăng nhập và tạo token thông qua AuthService cho thống nhất
-        $authService = app(AuthService::class);
-        [$token, $user, $expiresAt] = $authService->login($user, $remember);
-
-        return $this->success('Xác thực 2FA đăng nhập thành công', [
-            'token' => $token,
-            'user' => $user,
-            'expires_at' => $expiresAt?->toISOString(),
-        ]);
-    }
-
-    private function getSetupCacheKey(int $userId): string
-    {
-        return '2fa:setup:' . $userId;
-    }
-
-    private function getLoginCacheKey(string $challengeId): string
-    {
-        return '2fa:login:' . $challengeId;
+            return $this->success('Xác thực 2FA đăng nhập thành công', $result);
+        }
+        catch (\Exception $e) {
+            Log::error('Xác thực 2FA đăng nhập thất bại', ['error' => $e->getMessage()]);
+            return $this->error('Xác thực 2FA đăng nhập thất bại: ' . $e->getMessage(), null, 500);
+        }
     }
 }
