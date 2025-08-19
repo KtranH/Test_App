@@ -14,13 +14,13 @@ class UserController extends ApiController
     protected $model = User::class;
     
     /**
-     * Default number of records to return
+     * Số lượng bản ghi trả về mặc định
      * @var int
      */
     protected $defaultLimit = 10;
     
     /**
-     * Maximum number of records allowed to be returned in single request
+     * Tối đa số lượng bản ghi trả về trong một request
      * @var int
      */
     protected $maxLimit = 100;
@@ -31,92 +31,67 @@ class UserController extends ApiController
     public function __construct()
     {
         parent::__construct();
-        $this->middleware('auth:sanctum');
     }
 
     /**
-     * Danh sách users với phân quyền
-     * 
-     * API Endpoints:
-     * GET /api/users?limit=20&offset=0
-     * GET /api/users?fields=id,name,email&limit=15&offset=30
-     * GET /api/users?filters=(status eq "active")&limit=10&offset=0
-     * GET /api/users?order=name asc&limit=25&offset=50
-     * 
-     * @return mixed
+     * Tùy biến trước khi lấy danh sách user
+     * @param mixed $query
      */
-    public function index()
+    protected function modifyIndex($query)
     {
-        // Kiểm tra quyền xem danh sách user
+        // Phân quyền xem danh sách trước khi thực thi truy vấn
         $this->authorize('viewAny', User::class);
-        
-        return parent::index();
-    }
-    
-    /**
-     * Hiển thị thông tin user cụ thể
-     */
-    public function show(...$args)
-    {
-        $id = $args[0] ?? null;
-        $user = User::findOrFail($id);
-        
-        // Kiểm tra quyền xem user này
-        $this->authorize('view', $user);
-        return parent::show(...$args);
+        return $query;
     }
 
     /**
-     * Tạo user mới
+     * Tùy biến trước khi lấy chi tiết user
+     * @param mixed $query
      */
-    public function store()
+    protected function modifyShow($query)
     {
-        // Kiểm tra quyền tạo user
-        $this->authorize('create', User::class);
-        return parent::store();
-    }
-
-    /**
-     * Cập nhật user
-     */
-    public function update(...$args)
-    {
-        $id = null;
-        foreach ($args as $arg) {
-            if (is_numeric($arg) || (is_string($arg) && ctype_digit($arg))) {
-                $id = $arg;
-                break;
-            }
-        }
-        
-        if ($id) {
+        // Thực hiện phân quyền theo bản ghi
+        $id = request()->route('user') ?? (request()->route()?->parameter('id')) ?? null;
+        if ($id !== null) {
             $user = User::findOrFail($id);
-            // Kiểm tra quyền cập nhật user này
-            $this->authorize('update', $user);
+            $this->authorize('view', $user);
         }
-        return parent::update(...$args);
+        return $query;
     }
 
     /**
-     * Xóa user
+     * Tùy biến trước khi tạo user
+     * @param User $user
+     * @return User
      */
-    public function destroy(...$args)
+    protected function storing(User $user): User
     {
-        $id = $args[0] ?? null;
-        $user = User::findOrFail($id);
-        
-        // Kiểm tra quyền xóa user này
-        $this->authorize('delete', $user);
-        return parent::destroy(...$args);
+        // Chạy trước khi tạo trong transaction
+        $this->authorize('create', User::class);
+        return $user;
     }
-    
+
     /**
-     * @deprecated Sử dụng GET /api/users thay thế
-     * Method cũ để tương thích ngược
+     * Tùy biến trước khi cập nhật user
+     * @param User $user
+     * @return User
      */
-    public function paginate(Request $request)
+    protected function updating(User $user): User
     {
-        // Redirect to new index method
-        return $this->index();
+        // Chạy trước khi cập nhật trong transaction
+        $this->authorize('update', $user);
+        return $user;
+    }
+
+    /**
+     * Tùy biến trước khi xoá user
+     * @param User $user
+     * @return User
+     */
+    protected function destroying(User $user): User
+    {
+        // Chạy trước khi xoá trong transaction
+        $this->authorize('delete', $user);
+        return $user;
     }
 }
