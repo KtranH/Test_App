@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\UserRequest\StoreRequest;
+use App\Http\Requests\UserRequest\UpdateRequest;
+use App\Http\Requests\UserRequest\DestroyRequest;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Models\User;
 use Froiden\RestAPI\ApiController;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends ApiController
 {
@@ -24,6 +27,14 @@ class UserController extends ApiController
      * @var int
      */
     protected $maxLimit = 100;
+
+    /**
+     * Form Request validation
+     * @var array
+     */
+    protected $storeRequest = StoreRequest::class;
+    protected $updateRequest = UpdateRequest::class;
+    protected $deleteRequest = DestroyRequest::class;
 
     /**
      * Constructor - đảm bảo user đã authenticate
@@ -51,7 +62,7 @@ class UserController extends ApiController
     protected function modifyShow($query)
     {
         // Thực hiện phân quyền theo bản ghi
-        $id = request()->route('user') ?? (request()->route()?->parameter('id')) ?? null;
+        $id = request()->route('id') ?? request()->route('user') ?? null;
         if ($id !== null) {
             $user = User::findOrFail($id);
             $this->authorize('view', $user);
@@ -77,7 +88,7 @@ class UserController extends ApiController
      * @return User
      */
     protected function updating(User $user): User
-    {
+    { 
         // Chạy trước khi cập nhật trong transaction
         $this->authorize('update', $user);
         return $user;

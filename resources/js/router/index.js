@@ -3,6 +3,9 @@ import Dashboard from '@/views/Dashboard/Dashboard.vue'
 import UserList from '@/views/User/UserList.vue'
 import UserCreate from '@/views/User/UserCreate.vue'
 import UserEdit from '@/views/User/UserEdit.vue'
+import TaskList from '@/views/Task/TaskList.vue'
+import TaskCreate from '@/views/Task/TaskCreate.vue'
+import TaskEdit from '@/views/Task/TaskEdit.vue'
 import IconShowcase from '@/components/UI/IconShowcase.vue'
 import Login from '@/views/Auth/Login.vue'
 import Register from '@/views/Auth/Register.vue'
@@ -16,6 +19,25 @@ const routes = [
   {
     path: '/',
     redirect: '/dashboard'
+  },
+  {
+    path: '/tasks',
+    name: 'TaskList',
+    component: TaskList,
+    meta: { requiresAuth: true, transition: 'slide-right' }
+  },
+  {
+    path: '/tasks/create',
+    name: 'TaskCreate',
+    component: TaskCreate,
+    meta: { requiresAuth: true, transition: 'slide-right' }
+  },
+  {
+    path: '/tasks/:id/edit',
+    name: 'TaskEdit',
+    component: TaskEdit,
+    props: true,
+    meta: { requiresAuth: true, transition: 'slide-right' }
   },
   {
     path: '/2fa/verify',

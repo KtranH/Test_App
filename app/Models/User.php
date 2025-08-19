@@ -4,13 +4,9 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Froiden\RestAPI\ApiModel;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 
 class User extends ApiModel implements AuthenticatableContract
@@ -73,67 +69,14 @@ class User extends ApiModel implements AuthenticatableContract
      * Tên table
      */
     protected $table = 'users';
-
-    /**
-     * Set up rule cho tạo mới 
-     */
-    public static $rules = [
-        'name'     => 'required|string|min:6|max:255',
-        'email'    => 'required|email|unique:users,email',
-        'password' => 'required|min:6',
-        'role'     => 'required|string|in:user,super_admin,admin',
-        'status'   => 'required|string|in:active,inactive',
-    ];
-
-    /**
-     * Set up rule cho cập nhật
-     */
-    public static $updateRules = [
-        'name'     => 'required|string|min:6|max:255',
-        'role'     => 'required|string|in:user,super_admin,admin',
-        'status'   => 'required|string|in:active,inactive',
-    ];
-
-    /**
-     * Set up rule cho xóa
-     */
-    public static $deleteRules = [
-        'id' => 'required|exists:users,id',
-    ];
-
-    /**
-     * Hàm kiểm tra dữ liệu
-     * @param array $data
-     * @param array $rules
-     * @return void
-     * @throws \Exception
-     */
-    protected static function validateData($data, $rules)
-    {
-        $validator = Validator::make($data, $rules);
-        if ($validator->fails()) throw new \Exception($validator->errors()->first());
-    }
     
     /**
-     * Hàm kiểm tra dữ liệu
+     * Set up cấu hình trước khi transaction commit
      * @return void
      */
     protected static function booted()
     {
-        // Khi sửa
-        static::updating(function ($user) {
-            static::validateData($user->toArray(), static::$updateRules);
-        });
-
-        // Khi thêm
-        static::creating(function ($user) {
-            static::validateData($user->toArray(), static::$rules);
-        });
-        
-        // Khi xóa
-        static::deleting(function ($user) {
-            static::validateData($user->toArray(), static::$deleteRules);
-        });
+        // Set up cấu hình trước khi transaction commit
     }
 
     /**
@@ -285,5 +228,13 @@ class User extends ApiModel implements AuthenticatableContract
         }
 
         return false;
+    }
+
+    /**
+     * Quan hệ với bảng tasks
+     */
+    public function task()
+    {
+        return $this->hasMany(Task::class, 'user_id', 'id');
     }
 }
