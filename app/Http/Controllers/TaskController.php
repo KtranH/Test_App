@@ -92,6 +92,11 @@ class TaskController extends ApiController
     protected function destroying(Task $task): Task
     {
         $this->authorize('delete', $task);
+        // Chỉ cho phép xóa khi status thuộc các trạng thái cho phép
+        $allowedStatuses = ['pending', 'completed', 'cancelled'];
+        if (!in_array($task->status, $allowedStatuses, true)) {
+            abort(422, 'Chỉ được xóa task khi trạng thái là pending, completed hoặc cancelled');
+        }
         return $task;
     }
 }

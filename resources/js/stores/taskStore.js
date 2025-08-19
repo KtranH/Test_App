@@ -107,6 +107,10 @@ export const useTaskStore = defineStore('task', () => {
 
   const deleteTask = async (id) => {
     try {
+      const target = tasks.value.find(t => t.id === id)
+      if (target && !['pending', 'completed', 'cancelled'].includes(target.status)) {
+        throw new Error('Chỉ được xóa task khi trạng thái là pending, completed hoặc cancelled')
+      }
       const response = await TaskApi.deleteTask(id)
       if (response?.error) {
         throw new Error(response.error.message)

@@ -117,14 +117,14 @@
             <div class="overflow-x-auto">
               <table class="min-w-full text-sm">
                 <thead>
-                  <tr class="border-b border-gray-200">
-                    <th class="px-4 py-2 text-left text-gray-500 font-semibold">ID</th>
+                  <tr class="border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
+                    <th class="px-4 py-2 text-left text-gray-500 font-semibold w-16">ID</th>
                     <th class="px-4 py-2 text-left text-gray-500 font-semibold">Tên</th>
-                    <th class="px-4 py-2 text-left text-gray-500 font-semibold">Trạng thái</th>
+                    <th class="px-4 py-2 text-left text-gray-500 font-semibold w-32">Trạng thái</th>
                     <th class="px-4 py-2 text-left text-gray-500 font-semibold">User</th>
-                    <th class="px-4 py-2 text-left text-gray-500 font-semibold">Ngày bắt đầu</th>
-                    <th class="px-4 py-2 text-left text-gray-500 font-semibold">Ngày kết thúc</th>
-                    <th class="px-4 py-2 text-right text-gray-500 font-semibold">Hành động</th>
+                    <th class="px-4 py-2 text-left text-gray-500 font-semibold w-40">Ngày bắt đầu</th>
+                    <th class="px-4 py-2 text-left text-gray-500 font-semibold w-40">Ngày kết thúc</th>
+                    <th class="px-4 py-2 text-right text-gray-500 font-semibold w-28">Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -134,17 +134,22 @@
                     class="border-b last:border-0 hover:bg-gray-50 transition"
                   >
                     <td class="px-4 py-2 text-gray-900">{{ task.id }}</td>
-                    <td class="px-4 py-2 text-gray-900">{{ task.name }}</td>
+                    <td class="px-4 py-2 text-gray-900">
+                      <span class="inline-block max-w-[24rem] truncate align-middle" :title="task.name">{{ task.name }}</span>
+                    </td>
                     <td class="px-4 py-2">
                       <span
-                        class="inline-block px-2 py-0.5 rounded text-xs border"
+                        class="inline-block px-2 py-0.5 rounded text-xs border capitalize"
                         :class="badgeClass(task.status)"
                       >
                         {{ task.status }}
                       </span>
                     </td>
                     <td class="px-4 py-2 text-gray-700">
-                      {{ task.user?.name || `#${task.user_id}` }}
+                      <span class="inline-flex items-center gap-2 max-w-[20rem] truncate" :title="task.user?.email || ''">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span>{{ task.user?.name || `#${task.user_id}` }}</span>
+                      </span>
                     </td>
                     <td class="px-4 py-2 text-gray-700">{{ task.start_date ? (new Date(task.start_date).toLocaleDateString('vi-VN')) : '' }}</td>
                     <td class="px-4 py-2 text-gray-700">{{ task.end_date ? (new Date(task.end_date).toLocaleDateString('vi-VN')) : '' }}</td>
@@ -158,17 +163,18 @@
                           <Edit class="w-5 h-5 text-gray-500 group-hover:text-black transition" />
                         </router-link>
                         <button
-                          class="group"
+                          class="group disabled:opacity-40 disabled:cursor-not-allowed"
+                          :disabled="!canDelete(task)"
                           @click="confirmDelete(task)"
                           title="Xóa"
                         >
-                          <Trash2 class="w-5 h-5 text-red-500 group-hover:text-red-700 transition" />
+                          <Trash2 class="w-5 h-5" :class="canDelete(task) ? 'text-red-500 group-hover:text-red-700 transition' : 'text-gray-300'" />
                         </button>
                       </div>
                     </td>
                   </tr>
                   <tr v-if="!taskStore.isFetching && filteredTasks.length === 0">
-                    <td colspan="5" class="py-8 text-center text-gray-400">
+                    <td colspan="7" class="py-8 text-center text-gray-400">
                       <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto mb-2 h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/>
                         <path d="M9 10h.01M15 10h.01M9.5 15c1.5 1 3.5 1 5 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -326,8 +332,8 @@
                         <router-link :to="`/tasks/${task.id}/edit`" class="group" title="Sửa">
                           <Edit class="w-5 h-5 text-gray-500 group-hover:text-black transition" />
                         </router-link>
-                        <button class="group" @click="confirmDelete(task)" title="Xóa">
-                          <Trash2 class="w-5 h-5 text-red-500 group-hover:text-red-700 transition" />
+                        <button class="group disabled:opacity-40 disabled:cursor-not-allowed" :disabled="!canDelete(task)" @click="confirmDelete(task)" title="Xóa">
+                          <Trash2 class="w-5 h-5" :class="canDelete(task) ? 'text-red-500 group-hover:text-red-700 transition' : 'text-gray-300'" />
                         </button>
                       </div>
                     </td>
@@ -510,6 +516,10 @@ const confirmDelete = (task) => {
 const doDelete = async () => {
   const id = taskSelected.value?.id
   try {
+    if (!canDelete(taskSelected.value)) {
+      message.warning('Chỉ được xóa task khi trạng thái là pending, completed hoặc cancelled')
+      return
+    }
     await taskStore.deleteTask(id)
     if (Array.isArray(resultTasks.value) && resultTasks.value.length > 0) {
       resultTasks.value = resultTasks.value.filter(t => t.id !== id)
@@ -530,6 +540,10 @@ const badgeClass = (s) => {
   if (s === "cancelled") return "bg-red-500 text-white font-bold";
   return "bg-yellow-500 text-white font-bold";
 };
+
+const canDelete = (task) => {
+  return task && ['pending', 'completed', 'cancelled'].includes(task.status)
+}
 </script>
 
 <style scoped>
