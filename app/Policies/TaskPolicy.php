@@ -65,8 +65,8 @@ class TaskPolicy
             return $task->user_id !== null && $task->user_id !== $user->id;
         }
 
-        // user thường chỉ tạo cho chính mình
-        return $task->user_id === $user->id;
+        // user không được tạo task
+        return false;
     }
 
     /**

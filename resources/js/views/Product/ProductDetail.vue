@@ -70,13 +70,19 @@
 
             <!-- Actions -->
             <div class="flex gap-4">
-              <button class="flex-1 bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105">
+              <button 
+                @click="editProduct(selectedProduct)"
+                class="flex-1 bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
+              >
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                 </svg>
                 Chỉnh sửa
               </button>
-              <button class="px-6 py-3 border-2 border-gray-300 text-gray-700 hover:border-black hover:text-black rounded-lg font-medium transition-all duration-300">
+              <button 
+                @click="exportProductReport(selectedProduct)"
+                class="px-6 py-3 border-2 border-gray-300 text-gray-700 hover:border-black hover:text-black rounded-lg font-medium transition-all duration-300"
+              >
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
                 </svg>
@@ -163,12 +169,18 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div class="flex space-x-2">
-                    <button class="text-gray-400 hover:text-black transition-colors duration-200">
+                    <button 
+                      @click="editVariant(selectedProduct, variant)"
+                      class="text-gray-400 hover:text-black transition-colors duration-200"
+                    >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                       </svg>
                     </button>
-                    <button class="text-gray-400 hover:text-red-500 transition-colors duration-200">
+                    <button 
+                      @click="deleteVariant(selectedProduct, variant)"
+                      class="text-gray-400 hover:text-red-500 transition-colors duration-200"
+                    >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                       </svg>
@@ -182,7 +194,10 @@
 
         <!-- Add Variant Button -->
         <div class="p-6 bg-gray-50">
-          <button class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-black transition-all duration-200">
+          <button 
+            @click="createVariant(selectedProduct)"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-black transition-all duration-200"
+          >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
             </svg>
@@ -220,71 +235,31 @@
 </template>
 
 <script setup>
-import { useProductStore } from '@/stores/productStore'
-import { storeToRefs } from 'pinia'
-import { useRouter, useRoute } from 'vue-router'
-import { onMounted, watch } from 'vue'
+import { useProduct } from '@/composable/useProduct.js'
+import { useProductActions } from '@/composable/useProductActions.js'
 
-const productStore = useProductStore()
-const router = useRouter()
-const route = useRoute()
-const { selectedProduct, isLoading } = storeToRefs(productStore)
-const { formatPrice, getProductById, setSelectedProduct } = productStore
+const {
+  selectedProduct,
+  isLoading,
+  formatPrice,
+  goBack,
+  getTotalStock,
+  getActiveVariants,
+  getColorHex,
+  initProductDetail
+} = useProduct()
 
-// Lấy product ID từ route params
-const productId = parseInt(route.params.id)
+const {
+  editProduct,
+  exportProductReport,
+  createVariant,
+  editVariant,
+  deleteVariant,
+  toggleVariantStatus
+} = useProductActions()
 
-// Tự động load sản phẩm khi component mount hoặc route thay đổi
-onMounted(() => {
-  if (productId) {
-    const product = getProductById(productId)
-    if (product) {
-      setSelectedProduct(product)
-    } else {
-      // Nếu không tìm thấy sản phẩm, redirect về danh sách
-      router.push('/products')
-    }
-  }
-})
-
-// Watch route changes
-watch(() => route.params.id, (newId) => {
-  if (newId) {
-    const product = getProductById(parseInt(newId))
-    if (product) {
-      setSelectedProduct(product)
-    } else {
-      // Nếu không tìm thấy sản phẩm, redirect về danh sách
-      router.push('/products')
-    }
-  }
-})
-
-const goBack = () => {
-  productStore.clearSelectedProduct()
-  router.push('/products')
-}
-
-const getTotalStock = () => {
-  if (!selectedProduct.value) return 0
-  return selectedProduct.value.variants.reduce((total, variant) => total + variant.stock, 0)
-}
-
-const getActiveVariants = () => {
-  if (!selectedProduct.value) return 0
-  return selectedProduct.value.variants.filter(variant => variant.is_active).length
-}
-
-const getColorHex = (color) => {
-  const colorMap = {
-    'Đen': '#000000',
-    'Trắng': '#FFFFFF',
-    'Xanh đậm': '#1e3a8a',
-    'Đỏ': '#dc2626',
-    'Xanh': '#2563eb'
-  }
-  return colorMap[color] || '#6b7280'
-}
+// Khởi tạo product detail
+initProductDetail()
 </script>
 
 <style scoped>
