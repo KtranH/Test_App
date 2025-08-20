@@ -50,6 +50,8 @@ class Categories extends ApiModel
         'is_active',
     ];
 
+    protected $primaryKey = 'id';
+
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Categories::class, 'parent_id');

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { db, uid } from '@/admin/services/db'
 import { CategoriesApi } from '@/admin/api/categories'
 
@@ -9,6 +9,8 @@ export const useCategoryStore = defineStore('admin.categories', () => {
   const categories = ref(db.getCollection(CATEGORIES_KEY))
   const isLoading = ref(false)
   const hasLoaded = ref(false)
+  const pagingNext = ref(null)
+  const total = ref(0)
 
   const createCategory = (payload) => {
     const entity = { id: uid(), name: payload.name, slug: payload.slug, parentId: payload.parentId || null, isActive: payload.isActive ?? true }
@@ -36,12 +38,7 @@ export const useCategoryStore = defineStore('admin.categories', () => {
     createCategory({ name: 'Outerwear', slug: 'outerwear' })
   }
 
-  const fetchAll = async () => {
-    isLoading.value = true
-    try {
-      const res = await CategoriesApi.getCategories()
-      const list = Array.isArray(res?.data?.data) ? res.data.data : []
-      categories.value = list.map(c => ({
+  const mapCategory = (c) => ({
         id: c.id,
         name: c.name,
         slug: c.slug,
@@ -50,11 +47,39 @@ export const useCategoryStore = defineStore('admin.categories', () => {
         image: c.image ?? null,
         sortOrder: c.sort_order ?? 0,
         isActive: !!c.is_active,
-      }))
+      })
+
+  const fetchFirstPage = async (params = {}) => {
+    isLoading.value = true
+    try {
+      const res = await CategoriesApi.getCategories(params)
+      const list = Array.isArray(res?.data?.data) ? res.data.data : []
+      categories.value = list.map(mapCategory)
+      const meta = res?.data?.meta || {}
+      const paging = meta?.paging || {}
+      pagingNext.value = paging?.links?.next ?? null
+      total.value = Number(paging?.total ?? categories.value.length)
       db.setCollection(CATEGORIES_KEY, categories.value)
     } finally {
       isLoading.value = false
       hasLoaded.value = true
+    }
+  }
+
+  const fetchNextPage = async () => {
+    if (!pagingNext.value) return
+    isLoading.value = true
+    try {
+      const res = await CategoriesApi.getByUrl(pagingNext.value)
+      const list = Array.isArray(res?.data?.data) ? res.data.data : []
+      categories.value = categories.value.concat(list.map(mapCategory))
+      const meta = res?.data?.meta || {}
+      const paging = meta?.paging || {}
+      pagingNext.value = paging?.links?.next ?? null
+      total.value = Number(paging?.total ?? total.value)
+      db.setCollection(CATEGORIES_KEY, categories.value)
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -64,10 +89,10 @@ export const useCategoryStore = defineStore('admin.categories', () => {
       hasLoaded.value = true
       return
     }
-    await fetchAll()
+    await fetchFirstPage()
   }
 
-  return { categories, isLoading, createCategory, updateCategory, removeCategory, importDefaultsIfEmpty, fetchAll, ensureInitialized }
+  return { categories, isLoading, total, hasMore: computed(() => !!pagingNext.value), createCategory, updateCategory, removeCategory, importDefaultsIfEmpty, fetchFirstPage, fetchNextPage, ensureInitialized }
 })
 
 

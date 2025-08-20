@@ -56,6 +56,8 @@ class Attributes extends ApiModel
         'updated_at',
     ];
 
+    protected $primaryKey = 'id';
+    
     public function values(): HasMany
     {
         return $this->hasMany(AttributesValues::class, 'attribute_id', 'id');

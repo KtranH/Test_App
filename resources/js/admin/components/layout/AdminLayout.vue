@@ -1,19 +1,52 @@
 <template>
-  <div class="min-h-screen bg-white text-black flex">
+  <div class="min-h-screen bg-gradient-to-b from-white to-slate-50 text-black flex">
     <AdminSidebar />
     <div class="flex-1 flex flex-col">
       <AdminHeader />
-      <main class="p-4">
-        <RouterView />
+      <main class="p-4 sm:p-6">
+        <div class="mx-auto w-full max-w-[1400px]">
+          <RouterView />
+        </div>
       </main>
     </div>
+    <LoadingOverlay />
   </div>
 </template>
 
 <script setup>
-import { RouterView } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
+import { onMounted, onUnmounted } from 'vue'
 import AdminHeader from '@/admin/components/layout/AdminHeader.vue'
 import AdminSidebar from '@/admin/components/layout/AdminSidebar.vue'
+import LoadingOverlay from '@/admin/components/ui/LoadingOverlay.vue'
+import { useUiStore } from '@/admin/stores/ui.store'
+
+const router = useRouter()
+const ui = useUiStore()
+
+let removeBeforeEach = null
+let removeAfterEach = null
+
+onMounted(() => {
+  const before = (to, from, next) => {
+    if (to.path.startsWith('/admin')) {
+      ui.startLoading('Đang tải trang quản trị...')
+    }
+    next()
+  }
+  const after = () => {
+    // Nhẹ nhàng để người dùng kịp thấy animation
+    setTimeout(() => ui.stopLoading(), 250)
+  }
+  removeBeforeEach = router.beforeEach(before)
+  removeAfterEach = router.afterEach(after)
+})
+
+onUnmounted(() => {
+  // vue-router v4 trả về hàm unregister cho beforeEach/afterEach
+  if (typeof removeBeforeEach === 'function') removeBeforeEach()
+  if (typeof removeAfterEach === 'function') removeAfterEach()
+})
 </script>
 
 <style scoped>

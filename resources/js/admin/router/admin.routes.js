@@ -7,9 +7,7 @@ export const adminRoutes = [
     children: [
       {
         path: '',
-        name: 'admin.dashboard',
-        component: () => import('@/admin/views/Dashboard.vue'),
-        meta: { requiresAuth: true }
+        redirect: { name: 'admin.products' }
       },
       {
         path: 'attributes',
@@ -21,12 +19,6 @@ export const adminRoutes = [
         path: 'products',
         name: 'admin.products',
         component: () => import('@/admin/views/Products/ProductIndex.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'product-variants',
-        name: 'admin.productVariants',
-        component: () => import('@/admin/views/Products/ProductVariantsIndex.vue'),
         meta: { requiresAuth: true }
       },
       {

@@ -45,7 +45,6 @@ class AttributesValues extends ApiModel
 
     protected $default = [
         'id',
-        'attribute_id',
         'value',
         'code',
         'color_code',
@@ -57,6 +56,8 @@ class AttributesValues extends ApiModel
     ];
 
     protected $primaryKey = 'id';
+
+    protected $with = ['attribute'];
 
     public function attribute(): BelongsTo
     {

@@ -7,10 +7,12 @@
       </button>
     </header>
 
-    <div v-if="isLoading" class="p-4 border rounded-lg text-sm">Đang tải thuộc tính...</div>
+    <AdminCard v-if="isLoading">
+      <Skeletons type="cards" :rows="4" />
+    </AdminCard>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div v-for="attr in attributes" :key="attr.id" class="border border-black/10 rounded-lg p-4 hover:bg-black/5 transition-colors">
+      <AdminCard v-for="attr in attributes" :key="attr.id">
         <div class="flex items-start justify-between">
           <div>
             <div class="font-medium">{{ attr.name }}</div>
@@ -36,7 +38,14 @@
             <button class="px-3 py-2 border rounded-lg hover:bg-black/5">Thêm</button>
           </form>
         </div>
-      </div>
+      </AdminCard>
+    </div>
+
+    <div v-if="store.hasMore" class="flex justify-center mt-4">
+      <button class="px-4 py-2 border rounded-lg hover:bg-black/5 text-sm" @click="store.fetchNextPage" :disabled="isLoading">
+        Tải thêm
+      </button>
+      <div class="ml-3 text-xs text-black/60 self-center">Đã tải {{ attributes.length }}/{{ store.total }}</div>
     </div>
 
     <dialog ref="dialogRef" class="p-0 rounded-lg border border-black/20">
@@ -67,10 +76,12 @@
 import { ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAttributeStore } from '@/admin/stores/attribute.store'
+import AdminCard from '@/admin/components/ui/AdminCard.vue'
+import Skeletons from '@/admin/components/ui/Skeletons.vue'
 
 const store = useAttributeStore()
 const { attributes, valuesByAttrId, isLoading } = storeToRefs(store)
-const { createAttribute, updateAttribute, removeAttribute, addValue, removeValue, fetchAll } = store
+const { createAttribute, updateAttribute, removeAttribute, addValue, removeValue, ensureInitialized } = store
 
 const dialogRef = ref(null)
 const form = ref({ id: null, name: '', code: '', type: 'select', isVariantDefining: false })
@@ -79,7 +90,7 @@ const newValue = ref('')
 const newColor = ref('#000000')
 
 onMounted(async () => {
-  await fetchAll()
+  await ensureInitialized()
 })
 
 const openCreate = () => {

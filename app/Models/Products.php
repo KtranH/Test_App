@@ -67,7 +67,6 @@ class Products extends ApiModel
         'slug',
         'description',
         'short_description',
-        'category_id',
         'brand',
         'sku',
         'base_price',
@@ -79,6 +78,10 @@ class Products extends ApiModel
         'sort_order',
         'meta_data',
     ];
+
+    protected $with = ['variants', 'category'];
+
+    protected $primaryKey = 'id';
 
     public function category(): BelongsTo
     {

@@ -57,8 +57,11 @@ class Inventory extends ApiModel
         'is_in_stock',
         'is_backorder_allowed',
         'last_restocked_at',
-        'variant'
     ];
+
+    protected $primaryKey = 'id';
+
+    protected $with = ['variant'];
 
     public function variant(): BelongsTo
     {

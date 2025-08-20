@@ -11,6 +11,8 @@ export const useProductStore = defineStore('admin.products', () => {
   const variants = ref(db.getCollection(VARIANTS_KEY))
   const isLoading = ref(false)
   const hasLoaded = ref(false)
+  const pagingNext = ref(null)
+  const total = ref(0)
 
   const byId = computed(() => Object.fromEntries(products.value.map(p => [p.id, p])))
   const variantsByProductId = computed(() => {
@@ -39,12 +41,7 @@ export const useProductStore = defineStore('admin.products', () => {
     return entity
   }
 
-  const fetchAll = async () => {
-    isLoading.value = true
-    try {
-      const res = await ProductsApi.getProducts()
-      const list = Array.isArray(res?.data?.data) ? res.data.data : []
-      products.value = list.map(p => ({
+  const mapProduct = (p) => ({
         id: p.id,
         name: p.name,
         slug: p.slug,
@@ -58,11 +55,54 @@ export const useProductStore = defineStore('admin.products', () => {
         isFeatured: !!p.is_featured,
         meta: p.meta_data ?? null,
         sortOrder: p.sort_order ?? 0,
-      }))
+        variants: Array.isArray(p.variants) ? p.variants.map(v => ({
+          id: v.id,
+          productId: v.product_id,
+          sku: v.sku || '',
+          name: v.name || '',
+          price: v.price != null ? Number(v.price) : null,
+          salePrice: v.sale_price != null ? Number(v.sale_price) : null,
+          weight: v.weight != null ? Number(v.weight) : null,
+          width: v.width != null ? Number(v.width) : null,
+          height: v.height != null ? Number(v.height) : null,
+          length: v.length != null ? Number(v.length) : null,
+          isActive: !!v.is_active,
+          attributeCombination: v.attribute_combination ?? {},
+          deletedAt: v.deleted_at ?? null,
+        })) : [],
+      })
+
+  const fetchFirstPage = async (params = {}) => {
+    isLoading.value = true
+    try {
+      const res = await ProductsApi.getProducts(params)
+      const list = Array.isArray(res?.data?.data) ? res.data.data : []
+      products.value = list.map(mapProduct)
+      const meta = res?.data?.meta || {}
+      const paging = meta?.paging || {}
+      pagingNext.value = paging?.links?.next ?? null
+      total.value = Number(paging?.total ?? products.value.length)
       db.setCollection(PRODUCTS_KEY, products.value)
     } finally {
       isLoading.value = false
       hasLoaded.value = true
+    }
+  }
+
+  const fetchNextPage = async () => {
+    if (!pagingNext.value) return
+    isLoading.value = true
+    try {
+      const res = await ProductsApi.getByUrl(pagingNext.value)
+      const list = Array.isArray(res?.data?.data) ? res.data.data : []
+      products.value = products.value.concat(list.map(mapProduct))
+      const meta = res?.data?.meta || {}
+      const paging = meta?.paging || {}
+      pagingNext.value = paging?.links?.next ?? null
+      total.value = Number(paging?.total ?? total.value)
+      db.setCollection(PRODUCTS_KEY, products.value)
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -72,7 +112,7 @@ export const useProductStore = defineStore('admin.products', () => {
       hasLoaded.value = true
       return
     }
-    await fetchAll()
+    await fetchFirstPage()
   }
 
   const updateProduct = (id, patch) => {
@@ -107,9 +147,12 @@ export const useProductStore = defineStore('admin.products', () => {
     products,
     variants,
     isLoading,
+    total,
+    hasMore: computed(() => !!pagingNext.value),
     byId,
     variantsByProductId,
-    fetchAll,
+    fetchFirstPage,
+    fetchNextPage,
     ensureInitialized,
     createProduct,
     updateProduct,

@@ -57,7 +57,6 @@ class ProductVariants extends ApiModel
 
     protected $default = [
         'id',
-        'product_id',
         'sku',
         'name',
         'price',
@@ -70,11 +69,7 @@ class ProductVariants extends ApiModel
         'attribute_combination',
     ];
 
-    // Đánh dấu đây là quan hệ, không phải cột trên bảng
-    protected $relationKeys = ['product'];
-
-    // Eager load để client có luôn thông tin sản phẩm liên quan
-    protected $with = ['product'];
+    protected $primaryKey = 'id';
 
     public function product(): BelongsTo
     {

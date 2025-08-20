@@ -5,20 +5,34 @@
       <button class="px-3 py-2 border border-black/15 rounded-lg hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-black/20" @click="openCreate()">Thêm danh mục</button>
     </header>
 
-    <div v-if="isLoading" class="p-4 border rounded-lg text-sm">Đang tải danh mục...</div>
+    <AdminCard v-if="isLoading">
+      <Skeletons type="cards" :rows="6" />
+    </AdminCard>
 
-    <ul v-else class="space-y-2">
-      <li v-for="cat in categories" :key="cat.id" class="border border-black/10 rounded-lg p-3 flex items-center justify-between hover:bg-black/5 transition-colors">
-        <div>
-          <div class="font-medium">{{ cat.name }}</div>
-          <div class="text-xs text-black/50">Slug: {{ cat.slug }} · {{ cat.isActive ? 'Active' : 'Inactive' }}</div>
-        </div>
-        <div class="space-x-2">
-          <button class="text-xs px-2 py-1 border rounded-lg hover:bg-black/5" @click="edit(cat)">Sửa</button>
-          <button class="text-xs px-2 py-1 border rounded-lg hover:bg-black/5" @click="remove(cat.id)">Xóa</button>
-        </div>
-      </li>
-    </ul>
+    <AdminCard v-else>
+      <ul class="space-y-2">
+        <li v-for="cat in categories" :key="cat.id" class="border border-black/10 rounded-lg p-3 flex items-center justify-between hover:bg-black/5 transition-colors">
+          <div>
+            <div class="font-medium">{{ cat.name }}</div>
+            <div class="text-xs text-black/50">Slug: {{ cat.slug }} · {{ cat.isActive ? 'Active' : 'Inactive' }}</div>
+          </div>
+          <div class="space-x-2">
+            <button class="text-xs px-2 py-1 border rounded-lg hover:bg-black/5" @click="edit(cat)">Sửa</button>
+            <button class="text-xs px-2 py-1 border rounded-lg hover:bg-black/5" @click="remove(cat.id)">Xóa</button>
+          </div>
+        </li>
+        <li v-if="categories.length === 0">
+          <EmptyState :icon="FolderOpen" title="Chưa có danh mục" description="Hãy thêm danh mục mới để bắt đầu sắp xếp sản phẩm." />
+        </li>
+      </ul>
+    </AdminCard>
+
+    <div v-if="store.hasMore" class="flex justify-center mt-4">
+      <button class="px-4 py-2 border rounded-lg hover:bg-black/5 text-sm" @click="store.fetchNextPage" :disabled="isLoading">
+        Tải thêm
+      </button>
+      <div class="ml-3 text-xs text-black/60 self-center">Đã tải {{ categories.length }}/{{ store.total }}</div>
+    </div>
 
     <dialog ref="dialogRef" class="p-0 rounded-lg border border-black/20">
       <form method="dialog" class="min-w-[340px] p-4 space-y-3" @submit.prevent>
@@ -45,16 +59,20 @@
 import { ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useCategoryStore } from '@/admin/stores/category.store'
+import AdminCard from '@/admin/components/ui/AdminCard.vue'
+import Skeletons from '@/admin/components/ui/Skeletons.vue'
+import EmptyState from '@/admin/components/ui/EmptyState.vue'
+import { FolderOpen } from 'lucide-vue-next'
 
 const store = useCategoryStore()
 const { categories, isLoading } = storeToRefs(store)
-const { createCategory, updateCategory, removeCategory, fetchAll } = store
+const { createCategory, updateCategory, removeCategory, ensureInitialized } = store
 
 const dialogRef = ref(null)
 const form = ref({ id: null, name: '', slug: '', parentId: null, isActive: true })
 
 onMounted(async () => {
-  await fetchAll()
+  await ensureInitialized()
 })
 
 const openCreate = () => { form.value = { id: null, name: '', slug: '', parentId: null, isActive: true }; dialogRef.value?.showModal() }

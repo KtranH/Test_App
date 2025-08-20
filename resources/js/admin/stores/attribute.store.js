@@ -11,6 +11,8 @@ export const useAttributeStore = defineStore('admin.attributes', () => {
   const values = ref(db.getCollection(ATTRIBUTE_VALUES_KEY)) // flat list
   const isLoading = ref(false)
   const hasLoaded = ref(false)
+  const pagingNext = ref(null)
+  const total = ref(0)
 
   const byId = computed(() => Object.fromEntries(attributes.value.map(a => [a.id, a])))
   const valuesByAttrId = computed(() => {
@@ -74,11 +76,10 @@ export const useAttributeStore = defineStore('admin.attributes', () => {
     ;['Cotton', 'Linen', 'Wool'].forEach(n => addValue(material.id, { value: n }))
   }
 
-  const fetchAll = async () => {
+  const fetchFirstPage = async (params = {}) => {
     isLoading.value = true
     try {
-      // 1) Lấy danh sách attributes
-      const attrRes = await AttributesApi.getAttributes().catch(() => null)
+      const attrRes = await AttributesApi.getAttributes(params).catch(() => null)
       const attrList = Array.isArray(attrRes?.data?.data) ? attrRes.data.data : []
 
       attributes.value = attrList.map(a => ({
@@ -91,6 +92,10 @@ export const useAttributeStore = defineStore('admin.attributes', () => {
         sortOrder: a.sort_order ?? 0,
       }))
       db.setCollection(ATTRIBUTES_KEY, attributes.value)
+      const meta = attrRes?.data?.meta || {}
+      const paging = meta?.paging || {}
+      pagingNext.value = paging?.links?.next ?? null
+      total.value = Number(paging?.total ?? attributes.value.length)
 
       // 2) Với mỗi attribute, gọi API chi tiết để lấy values theo ID
       const detailPromises = attributes.value.map(a => AttributesApi.getAttributesValues(a.id).catch(() => null))
@@ -133,22 +138,80 @@ export const useAttributeStore = defineStore('admin.attributes', () => {
     }
   }
 
+  const fetchNextPage = async () => {
+    if (!pagingNext.value) return
+    isLoading.value = true
+    try {
+      const res = await AttributesApi.getByUrl(pagingNext.value).catch(() => null)
+      const list = Array.isArray(res?.data?.data) ? res.data.data : []
+      const nextAttrs = list.map(a => ({
+        id: a.id,
+        name: a.name,
+        code: a.code,
+        type: a.type || 'select',
+        isVariantDefining: !!(a.is_filterable ?? a.is_variant_defining),
+        isActive: !!(a.is_active ?? true),
+        sortOrder: a.sort_order ?? 0,
+      }))
+      attributes.value = attributes.value.concat(nextAttrs)
+      db.setCollection(ATTRIBUTES_KEY, attributes.value)
+
+      const meta = res?.data?.meta || {}
+      const paging = meta?.paging || {}
+      pagingNext.value = paging?.links?.next ?? null
+      total.value = Number(paging?.total ?? total.value)
+
+      // fetch values cho trang mới
+      const detailPromises = nextAttrs.map(a => AttributesApi.getAttributesValues(a.id).catch(() => null))
+      const detailResults = await Promise.all(detailPromises)
+      const collected = [...values.value]
+      for (let idx = 0; idx < nextAttrs.length; idx++) {
+        const a = nextAttrs[idx]
+        const res = detailResults[idx]
+        const dataNode = res?.data?.data
+        const attrNode = Array.isArray(dataNode)
+          ? (dataNode.find(n => n?.id === a.id) ?? dataNode[0])
+          : dataNode
+        const rawValues = Array.isArray(attrNode?.values) ? attrNode.values : []
+        for (const v of rawValues) {
+          const valueText = typeof v === 'string' ? v : (v?.value ?? '')
+          if (!valueText) continue
+          collected.push({
+            id: v?.id ?? `${a.id}:${valueText}`,
+            attributeId: a.id,
+            value: valueText,
+            meta: { hex: v?.color_code || null, code: v?.code || null, image: v?.image || null },
+            sortOrder: v?.sort_order ?? 0,
+            isActive: v?.is_active != null ? !!v.is_active : true,
+          })
+        }
+      }
+      values.value = collected
+      db.setCollection(ATTRIBUTE_VALUES_KEY, values.value)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   const ensureInitialized = async () => {
     if (hasLoaded.value) return
     if (attributes.value?.length > 0 && values.value?.length > 0) {
       hasLoaded.value = true
       return
     }
-    await fetchAll()
+    await fetchFirstPage()
   }
 
   return {
     attributes,
     values,
     isLoading,
+    total,
+    hasMore: computed(() => !!pagingNext.value),
     byId,
     valuesByAttrId,
-    fetchAll,
+    fetchFirstPage,
+    fetchNextPage,
     ensureInitialized,
     createAttribute,
     updateAttribute,
