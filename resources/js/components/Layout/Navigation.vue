@@ -32,6 +32,14 @@
               Tasks
             </router-link>
             <router-link 
+              to="/products" 
+              class="text-gray-900 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+              :class="{ 'bg-gray-100 text-gray-900': $route.name === 'ProductList' || $route.name === 'ProductDetail' }"
+            >
+              <Package class="w-4 h-4" />
+              Products
+            </router-link>
+            <router-link 
               to="/icons" 
               class="text-gray-900 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-2"
               :class="{ 'bg-gray-100 text-gray-900': $route.name === 'IconShowcase' }"
@@ -65,5 +73,5 @@
 </template>
 
 <script setup>
-import { LayoutDashboard, Users, User, Palette, Shield, CheckSquare } from 'lucide-vue-next'
+import { LayoutDashboard, Users, User, Palette, Shield, CheckSquare, Package } from 'lucide-vue-next'
 </script>

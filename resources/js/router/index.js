@@ -6,6 +6,8 @@ import UserEdit from '@/views/User/UserEdit.vue'
 import TaskList from '@/views/Task/TaskList.vue'
 import TaskCreate from '@/views/Task/TaskCreate.vue'
 import TaskEdit from '@/views/Task/TaskEdit.vue'
+import ProductList from '@/views/Product/ProductList.vue'
+import ProductDetail from '@/views/Product/ProductDetail.vue'
 import IconShowcase from '@/components/UI/IconShowcase.vue'
 import Login from '@/views/Auth/Login.vue'
 import Register from '@/views/Auth/Register.vue'
@@ -91,6 +93,19 @@ const routes = [
     path: '/users/:id/edit',
     name: 'UserEdit',
     component: UserEdit,
+    props: true,
+    meta: { requiresAuth: true, transition: 'slide-right' }
+  },
+  {
+    path: '/products',
+    name: 'ProductList',
+    component: ProductList,
+    meta: { requiresAuth: true, transition: 'slide-right' }
+  },
+  {
+    path: '/products/:id',
+    name: 'ProductDetail',
+    component: ProductDetail,
     props: true,
     meta: { requiresAuth: true, transition: 'slide-right' }
   },
