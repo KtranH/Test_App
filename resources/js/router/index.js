@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { adminRoutes } from '@/admin/router/admin.routes'
 import Dashboard from '@/views/Dashboard/Dashboard.vue'
 import UserList from '@/views/User/UserList.vue'
 import UserCreate from '@/views/User/UserCreate.vue'
@@ -115,6 +116,7 @@ const routes = [
     component: IconShowcase,
     meta: { requiresAuth: true, transition: 'slide-right' }
   },
+  ...adminRoutes,
   // Route 500 Error - Server Error
   {
     path: '/server-error',

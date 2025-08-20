@@ -50,7 +50,7 @@ const loadingStore = useLoadingStore()
 useAuth()
 
 const isLoginOrRegister = computed(() => {
-  return route.path === '/login' || route.path === '/register' || route.path === '/forgot-password' || route.path === '/reset-password' || route.path === '/email-verification'
+  return route.path === '/login' || route.path === '/register' || route.path === '/forgot-password' || route.path === '/reset-password' || route.path === '/email-verification' || route.path.startsWith('/admin')
 })
 
 const isErrorRoute = computed(() => {

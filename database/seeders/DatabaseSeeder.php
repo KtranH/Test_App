@@ -22,7 +22,14 @@ class DatabaseSeeder extends Seeder
 
         // Seed products
         $this->call([
+            CategorySeeder::class,
+            AttributeSeeder::class,
+            AttributeValueSeeder::class,
             ProductSeeder::class,
+            ProductVariantSeeder::class,
+            ProductVariantAttributeSeeder::class,
+            InventorySeeder::class,
+            ProductImageSeeder::class,
         ]);
     }
 }

@@ -6,6 +6,13 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\AttributesController;
+use App\Http\Controllers\AttributesValuesController;
+use App\Http\Controllers\CategoriesController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\ProductImagesController;
+use App\Http\Controllers\ProductsController;
+use App\Http\Controllers\ProductsVariantsController;    
 use Froiden\RestAPI\Facades\ApiRoute;
 
 /*
@@ -69,6 +76,13 @@ ApiRoute::group([
     ApiRoute::middleware(['auth:sanctum'])->group(function () {
         ApiRoute::apiResource('users', UserController::class);
         ApiRoute::apiResource('tasks', TaskController::class);
+        ApiRoute::apiResource('attributes', AttributesController::class);
+        ApiRoute::apiResource('attributes-values', AttributesValuesController::class);
+        ApiRoute::apiResource('categories', CategoriesController::class);
+        ApiRoute::apiResource('inventory', InventoryController::class);
+        ApiRoute::apiResource('product-images', ProductImagesController::class);
+        ApiRoute::apiResource('products', ProductsController::class);
+        ApiRoute::apiResource('product-variants', ProductsVariantsController::class);
     });
 });
 

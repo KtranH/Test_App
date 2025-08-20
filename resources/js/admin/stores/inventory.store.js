@@ -1,0 +1,79 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { db, uid } from '@/admin/services/db'
+import { InventoryApi } from '@/admin/api/inventory'
+
+const INVENTORY_KEY = 'inventory'
+
+export const useInventoryStore = defineStore('admin.inventory', () => {
+  const items = ref(db.getCollection(INVENTORY_KEY))
+  const isLoading = ref(false)
+  const hasLoaded = ref(false)
+
+  const setQty = (productVariantId, quantity, safetyStock = 0) => {
+    const idx = items.value.findIndex(i => i.productVariantId === productVariantId)
+    const entity = {
+      id: idx >= 0 ? items.value[idx].id : uid(),
+      productVariantId,
+      quantity,
+      safetyStock,
+      isLowStock: quantity <= safetyStock
+    }
+    if (idx >= 0) items.value[idx] = entity
+    else items.value.push(entity)
+    db.setCollection(INVENTORY_KEY, items.value)
+  }
+
+  const adjust = (productVariantId, delta) => {
+    const idx = items.value.findIndex(i => i.productVariantId === productVariantId)
+    if (idx < 0) return
+    const nextQty = Math.max(0, items.value[idx].quantity + delta)
+    items.value[idx] = { ...items.value[idx], quantity: nextQty, isLowStock: nextQty <= items.value[idx].safetyStock }
+    db.setCollection(INVENTORY_KEY, items.value)
+  }
+
+  const fetchAll = async () => {
+    isLoading.value = true
+    try {
+      const res = await InventoryApi.getInventory()
+      const list = Array.isArray(res?.data?.data) ? res.data.data : []
+      items.value = list.map(r => {
+        const quantity = Number(r.quantity ?? 0)
+        const reserved = Number(r.reserved_quantity ?? 0)
+        const available = Number(r.available_quantity ?? Math.max(0, quantity - reserved))
+        const threshold = Number(r.low_stock_threshold ?? 0)
+        return {
+          id: r.id,
+          productVariantId: r.product_variant_id,
+          variant: r.variant,
+          quantity,
+          reservedQuantity: reserved,
+          availableQuantity: available,
+          safetyStock: threshold,
+          isLowStock: available <= threshold,
+          isInStock: !!r.is_in_stock,
+          isBackorderAllowed: !!r.is_backorder_allowed,
+          lastRestockedAt: r.last_restocked_at || null,
+        }
+      })
+      db.setCollection(INVENTORY_KEY, items.value)
+    } finally {
+      isLoading.value = false
+      hasLoaded.value = true
+    }
+  }
+
+  const ensureInitialized = async () => {
+    if (hasLoaded.value) return
+    if (items.value?.length > 0) {
+      hasLoaded.value = true
+      return
+    }
+    await fetchAll()
+  }
+
+  return { items, isLoading, setQty, adjust, fetchAll, ensureInitialized }
+})
+
+
+
