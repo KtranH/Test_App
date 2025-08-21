@@ -1,14 +1,21 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 text-gray-900 flex">
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 text-gray-900">
+    <!-- Fixed Sidebar -->
     <AdminSidebar />
-    <div class="flex-1 flex flex-col">
+    
+    <!-- Main Content Area -->
+    <div class="md:ml-64">
+      <!-- Fixed Header -->
       <AdminHeader />
-      <main class="flex-1 p-6 lg:p-8">
+      
+      <!-- Scrollable Main Content -->
+      <main class="pt-14 p-6 lg:p-8">
         <div class="mx-auto w-full max-w-[1400px]">
           <RouterView />
         </div>
       </main>
     </div>
+    
     <LoadingOverlay />
   </div>
 </template>
@@ -50,4 +57,5 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Đảm bảo layout hoạt động mượt mà */
 </style>
