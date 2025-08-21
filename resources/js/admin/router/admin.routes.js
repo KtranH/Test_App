@@ -40,6 +40,12 @@ export const adminRoutes = [
         meta: { requiresAuth: true }
       },
       {
+        path: 'products/:id/variants/create',
+        name: 'admin.products.variants.create',
+        component: () => import('@/admin/views/Products/ProductVariantCreate.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
         path: 'categories',
         name: 'admin.categories',
         component: () => import('@/admin/views/Categories/CategoryIndex.vue'),

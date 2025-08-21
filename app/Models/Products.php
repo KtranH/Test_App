@@ -67,6 +67,7 @@ class Products extends ApiModel
         'slug',
         'description',
         'short_description',
+        'category_id',
         'brand',
         'sku',
         'base_price',

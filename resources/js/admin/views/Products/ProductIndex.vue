@@ -1,10 +1,15 @@
 <template>
   <section class="space-y-8">
     <!-- Header với gradient -->
-    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-8 text-white">
-      <div class="relative z-10">
-        <h1 class="text-3xl font-bold mb-2 text-white">Quản lý sản phẩm</h1>
-        <p class="text-blue-100">Tạo và quản lý danh mục sản phẩm</p>
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 p-8 text-blue-900" data-aos="fade-up" data-aos-duration="800">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+          <PackageSearch class="h-5 w-5 text-white" />
+        </div>
+        <div class="relative z-10">
+          <h1 class="text-2xl font-bold mb-2">Quản lý sản phẩm</h1>
+          <p class="text-black">Tạo và quản lý danh mục sản phẩm</p>
+        </div>
       </div>
       <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-white/10 to-transparent"></div>
       <div class="absolute -right-4 -top-4 h-32 w-32 rounded-full bg-white/10"></div>
@@ -12,14 +17,20 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="flex items-center justify-between">
-      <RouterLink
-        :to="{ name: 'admin.products.create' }"
-        class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:from-blue-600 hover:to-blue-700"
-      >
-        <Plus class="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
-        Tạo sản phẩm mới
-      </RouterLink>
+    <div class="flex items-center justify-between" data-aos="fade-up" data-aos-duration="1000">
+      <div class="flex items-center gap-3">
+        <RouterLink
+          :to="{ name: 'admin.products.create' }"
+          class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:from-blue-600 hover:to-blue-700"
+        >
+          <Plus class="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
+          Tạo sản phẩm mới
+        </RouterLink>
+        <button @click="refresh()" class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:from-blue-600 hover:to-blue-700">
+          <LoaderCircle class="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
+          Tải mới
+        </button>
+      </div>
       <div class="flex items-center gap-2 text-sm text-gray-600">
         <Package class="h-4 w-4" />
         <span>{{ products.length }} sản phẩm</span>
@@ -35,7 +46,7 @@
     </div>
 
     <!-- Products Table -->
-    <div v-else class="rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden">
+    <div v-else class="rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden" data-aos="fade-up" data-aos-duration="1200">
       <!-- Filters -->
       <div class="p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
         <div class="flex flex-wrap gap-4 items-center">
@@ -57,7 +68,7 @@
       </div>
 
       <!-- Table -->
-      <div class="overflow-hidden">
+      <div class="overflow-hidden" data-aos="fade-up" data-aos-duration="1400">
         <table class="w-full text-sm">
           <thead class="bg-gradient-to-r from-blue-50 to-purple-50 text-left">
             <tr>
@@ -104,16 +115,13 @@
                 <td class="p-4">
                   <div class="flex items-center gap-2">
                     <button @click="toggleExpand(p)" class="group/btn inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200">
-                      <Blend class="h-4 w-4 text-gray-600 group-hover/btn:text-blue-600" />
-                      <span class="text-sm">{{ expandedId === p.id ? 'Ẩn' : 'Xem' }}</span>
+                      <Blend class="h-4 w-4 text-gray-600 group-hover/btn:text-blue-600"/>
                     </button>
                     <RouterLink :to="{ name: 'admin.products.edit', params: { id: p.id } }" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 transition-all duration-200">
                       <Edit class="h-4 w-4 text-gray-600" />
-                      <span class="text-sm">Sửa</span>
                     </RouterLink>
                     <button @click="remove(p.id)" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:border-red-300 hover:bg-red-50 transition-all duration-200">
                       <Trash2 class="h-4 w-4 text-gray-600" />
-                      <span class="text-sm">Xóa</span>
                     </button>
                   </div>
                 </td>
@@ -223,7 +231,7 @@ import { useProductStore } from '@/admin/stores/product.store'
 import { useCategoryStore } from '@/admin/stores/category.store'
 import { 
   Plus, Package, Blend, Edit, Trash2, CheckCheck, X, 
-  Search, Folder, FileText, Archive, Hash 
+  Search, Folder, FileText, Archive, Hash, PackageSearch, LoaderCircle
 } from 'lucide-vue-next'
 import { ProductsApi } from '@/admin/api/products'
 
@@ -290,6 +298,11 @@ const toggleExpand = async (product) => {
 const formatPrice = (n) => {
   const num = Number(n ?? 0)
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(num)
+}
+
+// Làm mới dữ liệu
+const refresh = () => {
+  productStore.fetchFirstPage()
 }
 
 onMounted(async () => {

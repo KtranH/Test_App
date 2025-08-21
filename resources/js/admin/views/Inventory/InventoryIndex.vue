@@ -1,7 +1,7 @@
 <template>
   <section class="space-y-8">
     <!-- Header với gradient và shadow -->
-    <header class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 shadow-sm border border-emerald-100">
+    <header class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 shadow-sm border border-emerald-100" data-aos="fade-up" data-aos-duration="800">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
@@ -21,12 +21,16 @@
             </svg>
             Xuất báo cáo
           </button>
+          <button @click="refresh()" class="px-4 py-2 border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-50 transition-colors duration-200 flex items-center gap-2">
+            <LoaderCircle class="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
+            Tải mới
+          </button>
         </div>
       </div>
     </header>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4" data-aos="fade-up" data-aos-duration="1000">
       <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -85,7 +89,7 @@
     </div>
 
     <!-- Filters và Search -->
-    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm" data-aos="fade-up" data-aos-duration="1000">
       <div class="flex flex-col md:flex-row gap-4 items-center">
         <div class="flex-1">
           <div class="relative">
@@ -124,7 +128,7 @@
     </AdminCard>
 
     <!-- Inventory Table -->
-    <AdminCard v-else class="overflow-hidden">
+    <AdminCard v-else class="overflow-hidden" data-aos="fade-up" data-aos-duration="1200">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
@@ -362,6 +366,7 @@ import { storeToRefs } from 'pinia'
 import { useInventoryStore } from '@/admin/stores/inventory.store'
 import AdminCard from '@/admin/components/ui/AdminCard.vue'
 import Skeletons from '@/admin/components/ui/Skeletons.vue'
+import { LoaderCircle } from 'lucide-vue-next'
 
 const store = useInventoryStore()
 const { items, isLoading } = storeToRefs(store)
@@ -422,6 +427,11 @@ const saveAdjustment = () => {
     adjust(selectedItem.value.productVariantId, difference)
     closeAdjustModal()
   }
+}
+
+// Làm mới dữ liệu
+const refresh = () => {
+  store.fetchFirstPage()
 }
 
 onMounted(async () => {

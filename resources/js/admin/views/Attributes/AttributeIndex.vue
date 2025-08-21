@@ -1,7 +1,7 @@
 <template>
   <section class="space-y-8">
     <!-- Header với gradient và shadow -->
-    <header class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 shadow-sm border border-blue-100">
+    <header class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 shadow-sm border border-blue-100" data-aos="fade-up" data-aos-duration="800">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
@@ -14,20 +14,24 @@
             <p class="text-gray-600 text-sm">Tạo và quản lý các thuộc tính sản phẩm</p>
           </div>
         </div>
-        <button 
-          class="group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2"
-          @click="openCreate()"
-        >
-          <svg class="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-          </svg>
-          Thêm thuộc tính
-        </button>
+        <div class="flex items-center gap-3">
+          <button 
+            class="group relative px-6 py-3 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-900 font-medium rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2"
+            @click="openCreate()"
+          >
+            <Plus class="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
+            Thêm thuộc tính
+          </button>
+          <button @click="refresh()" class="group relative px-6 py-3 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-900 font-medium rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2"> 
+            <LoaderCircle class="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
+            Tải mới
+          </button>
+        </div>
       </div>
     </header>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4" data-aos="fade-up" data-aos-duration="1000">
       <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -91,7 +95,7 @@
     </AdminCard>
 
     <!-- Attributes Grid -->
-    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6" data-aos="fade-up" data-aos-duration="1200">
       <div 
         v-for="(attr, index) in attributes" 
         :key="attr.id"
@@ -315,6 +319,7 @@ import { storeToRefs } from 'pinia'
 import { useAttributeStore } from '@/admin/stores/attribute.store'
 import AdminCard from '@/admin/components/ui/AdminCard.vue'
 import Skeletons from '@/admin/components/ui/Skeletons.vue'
+import { LoaderCircle, Plus } from 'lucide-vue-next'
 
 const store = useAttributeStore()
 const { attributes, valuesByAttrId, isLoading } = storeToRefs(store)
@@ -360,6 +365,11 @@ const addNewValue = (attributeId) => {
 }
 
 const remove = (id) => removeAttribute(id)
+
+// Làm mới dữ liệu
+const refresh = () => {
+  store.fetchFirstPage()
+}
 </script>
 
 <style scoped>

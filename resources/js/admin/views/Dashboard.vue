@@ -1,28 +1,55 @@
 <template>
   <section class="space-y-8">
     <!-- Hero Header -->
-    <div class="relative overflow-hidden bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 shadow-sm border border-emerald-100">
-      <div class="relative z-10">
-        <h1 class="text-4xl font-bold mb-3">Chào mừng trở lại!</h1><UserCheck/>
-        <p class="text-xl text-gray-500 mb-6">Tổng quan hệ thống quản lý sản phẩm</p>
-        <div class="flex items-center gap-6 text-sm">
-          <div class="flex items-center gap-2">
-            <Clock class="h-4 w-4" />
-            <span>{{ new Date().toLocaleDateString('vi-VN') }}</span>
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-100 via-teal-50 to-white p-8 shadow-lg border border-emerald-100" data-aos="fade-up" data-aos-duration="800">
+      <!-- Hiệu ứng nền hiện đại -->
+      <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute -top-10 -left-10 w-40 h-40 bg-emerald-200/30 rounded-full blur-2xl animate-pulse"></div>
+        <div class="absolute -bottom-8 right-0 w-32 h-32 bg-teal-300/20 rounded-full blur-xl animate-pulse" style="animation-delay: 1s"></div>
+        <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-white/20 to-transparent"></div>
+      </div>
+      <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div>
+          <div class="flex items-center gap-3">
+            <UserCheck class="h-8 w-8 text-emerald-500 drop-shadow" />
+            <h1 class="text-2xl h-10 md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 via-teal-500 to-blue-500 bg-clip-text text-transparent">
+              Chào mừng trở lại!
+            </h1>
           </div>
-          <div class="flex items-center gap-2">
-            <Activity class="h-4 w-4" />
-            <span>Hệ thống hoạt động bình thường</span>
+          <p class="text-base md:text-lg text-gray-600 mb-4">Tổng quan hệ thống quản lý sản phẩm</p>
+          <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+            <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/60 shadow border border-emerald-100">
+              <Clock class="h-4 w-4 text-emerald-500" />
+              <span>{{ new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' }) }}</span>
+            </div>
+            <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/60 shadow border border-emerald-100">
+              <Activity class="h-4 w-4 text-emerald-500 animate-pulse" />
+              <span class="font-medium">Hệ thống hoạt động bình thường</span>
+            </div>
+            <button @click="refresh()" class="flex items-center font-medium gap-2 px-3 py-1 rounded-lg bg-white/60 shadow border border-emerald-100">
+              <LoaderCircle class="h-5 w-5 text-emerald-500 group-hover:rotate-12 transition-transform duration-300 " />
+              Tải mới
+            </button>
           </div>
         </div>
+        <div class="hidden md:block">
+          <svg width="100" height="100" viewBox="0 0 100 100" class="opacity-60">
+            <defs>
+              <linearGradient id="dashboard-hero" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#34d399" />
+                <stop offset="100%" stop-color="#06b6d4" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="40" fill="url(#dashboard-hero)" opacity="0.15"/>
+            <circle cx="70" cy="30" r="10" fill="#34d399" opacity="0.2"/>
+            <circle cx="30" cy="70" r="8" fill="#06b6d4" opacity="0.15"/>
+          </svg>
+        </div>
       </div>
-      <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-white/10 to-transparent"></div>
-      <div class="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 animate-pulse"></div>
-      <div class="absolute -right-16 top-16 h-24 w-24 rounded-full bg-white/5 animate-pulse" style="animation-delay: 1s;"></div>
     </div>
 
     <!-- Stats Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" data-aos="fade-up" data-aos-duration="1000">
       <!-- Products Card -->
       <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
         <div class="absolute inset-0 bg-gradient-to-br from-blue-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -89,7 +116,7 @@
     </div>
 
     <!-- Charts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" data-aos="fade-up" data-aos-duration="1200">
       <!-- Products by Category Chart -->
       <div class="lg:col-span-2 rounded-2xl bg-white p-6 shadow-lg border border-gray-100">
         <div class="flex items-center gap-3 mb-6">
@@ -188,8 +215,9 @@ import SimpleDonutChart from '@/admin/components/ui/SimpleDonutChart.vue'
 import { 
   Package, Blend, Settings2, AlertTriangle, Clock, Activity,
   TrendingUp, TrendingDown, BarChart3, PieChart, Plus, 
-  FolderPlus, Warehouse, UserCheck
+  FolderPlus, Warehouse, UserCheck, LoaderCircle
 } from 'lucide-vue-next'
+import { message } from "ant-design-vue";
 
 const productStore = useProductStore()
 const attributeStore = useAttributeStore()
@@ -220,6 +248,14 @@ const categoryCounts = computed(() => {
 // Donut: inventory low vs ok
 const totalInventoryItems = computed(() => inventoryStore.items.length || 1)
 const lowStockCount = computed(() => inventoryStore.items.filter(i => i.isLowStock).length)
+
+// Làm mới dữ liệu
+const refresh = () => {
+  productStore.fetchFirstPage()
+  attributeStore.fetchFirstPage()
+  inventoryStore.fetchFirstPage()
+  message.success('Đã tải mới dữ liệu')
+}
 
 onMounted(async () => {
   await Promise.all([

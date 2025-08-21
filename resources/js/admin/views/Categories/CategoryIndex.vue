@@ -1,10 +1,15 @@
 <template>
   <section class="space-y-8">
     <!-- Header với gradient -->
-    <div class="relative overflow-hidden bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl p-6 shadow-sm border border-emerald-100">
-      <div class="relative z-10">
-        <h1 class="text-3xl font-bold mb-2">Quản lý danh mục</h1>
-        <p class="text-black">Tổ chức và phân loại sản phẩm</p>
+    <div class="relative overflow-hidden bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl p-6 shadow-sm border border-emerald-100" data-aos="fade-up" data-aos-duration="800">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+          <Folder class="h-5 w-5 text-white" />
+        </div>
+        <div class="relative z-10">
+          <h1 class="text-2xl font-bold mb-2">Quản lý danh mục</h1>
+          <p class="text-black">Tổ chức và phân loại sản phẩm</p>
+        </div>
       </div>
       <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-white/10 to-transparent"></div>
       <div class="absolute -right-4 -top-4 h-32 w-32 rounded-full bg-white/10"></div>
@@ -12,11 +17,17 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="flex items-center justify-between">
-      <button @click="openCreate()" class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:from-emerald-600 hover:to-emerald-700">
-        <FolderPlus class="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
-        Tạo danh mục mới
-      </button>
+    <div class="flex items-center justify-between" data-aos="fade-up" data-aos-duration="1000">
+      <div class="flex items-center gap-4">
+        <button @click="openCreate()" class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:from-emerald-600 hover:to-emerald-700">
+          <FolderPlus class="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
+          Tạo danh mục mới
+        </button>
+        <button @click="refresh()" class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:from-emerald-600 hover:to-emerald-700">
+          <LoaderCircle class="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
+          Tải mới
+        </button>
+      </div>
       <div class="flex items-center gap-2 text-sm text-gray-600">
         <Folder class="h-4 w-4" />
         <span>{{ categories.length }} danh mục</span>
@@ -32,7 +43,7 @@
     </div>
 
     <!-- Categories Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-aos="fade-up" data-aos-duration="1200">
       <div v-for="cat in categories" :key="cat.id" class="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
         <div class="absolute inset-0 bg-gradient-to-r from-emerald-50 to-teal-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <div class="relative z-10">
@@ -119,18 +130,18 @@ import { storeToRefs } from 'pinia'
 import { useCategoryStore } from '@/admin/stores/category.store'
 import EmptyState from '@/admin/components/ui/EmptyState.vue'
 import { 
-  FolderOpen, Folder, FolderPlus, Edit, Trash2, Hash, CheckCheck, X 
+  FolderOpen, Folder, FolderPlus, Edit, Trash2, Hash, CheckCheck, X, LoaderCircle
 } from 'lucide-vue-next'
 
 const store = useCategoryStore()
 const { categories, isLoading } = storeToRefs(store)
-const { createCategory, updateCategory, removeCategory, fetchAll } = store
+const { createCategory, updateCategory, removeCategory, ensureInitialized, fetchFirstPage } = store
 
 const dialogRef = ref(null)
 const form = ref({ id: null, name: '', slug: '', parentId: null, isActive: true })
 
 onMounted(async () => {
-  await fetchAll()
+  await ensureInitialized()
 })
 
 const openCreate = () => { form.value = { id: null, name: '', slug: '', parentId: null, isActive: true }; dialogRef.value?.showModal() }
@@ -143,6 +154,9 @@ const save = () => {
   closeDialog()
 }
 const remove = (id) => removeCategory(id)
+const refresh = () => {
+  store.fetchFirstPage()
+}
 </script>
 
 <style scoped>
