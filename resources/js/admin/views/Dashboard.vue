@@ -1,10 +1,10 @@
 <template>
   <section class="space-y-8">
     <!-- Hero Header -->
-    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-10 text-white">
+    <div class="relative overflow-hidden bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 shadow-sm border border-emerald-100">
       <div class="relative z-10">
-        <h1 class="text-4xl font-bold mb-3">Chào mừng trở lại! 👋</h1>
-        <p class="text-xl text-indigo-100 mb-6">Tổng quan hệ thống quản lý sản phẩm</p>
+        <h1 class="text-4xl font-bold mb-3">Chào mừng trở lại!</h1><UserCheck/>
+        <p class="text-xl text-gray-500 mb-6">Tổng quan hệ thống quản lý sản phẩm</p>
         <div class="flex items-center gap-6 text-sm">
           <div class="flex items-center gap-2">
             <Clock class="h-4 w-4" />
@@ -188,7 +188,7 @@ import SimpleDonutChart from '@/admin/components/ui/SimpleDonutChart.vue'
 import { 
   Package, Blend, Settings2, AlertTriangle, Clock, Activity,
   TrendingUp, TrendingDown, BarChart3, PieChart, Plus, 
-  FolderPlus, Warehouse 
+  FolderPlus, Warehouse, UserCheck
 } from 'lucide-vue-next'
 
 const productStore = useProductStore()

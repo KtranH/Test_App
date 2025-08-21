@@ -6,8 +6,8 @@
     <!-- Main Content Area -->
     <div class="md:ml-64">
       <!-- Fixed Header -->
-      <AdminHeader />
-      
+      <AdminHeader/>
+      <div class="h-14"></div>
       <!-- Scrollable Main Content -->
       <main class="pt-14 p-6 lg:p-8">
         <div class="mx-auto w-full max-w-[1400px]">

@@ -1,10 +1,10 @@
 <template>
   <section class="space-y-8">
     <!-- Header với gradient -->
-    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-8 text-white">
+    <div class="relative overflow-hidden bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl p-6 shadow-sm border border-emerald-100">
       <div class="relative z-10">
         <h1 class="text-3xl font-bold mb-2">Quản lý danh mục</h1>
-        <p class="text-emerald-100">Tổ chức và phân loại sản phẩm</p>
+        <p class="text-black">Tổ chức và phân loại sản phẩm</p>
       </div>
       <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-white/10 to-transparent"></div>
       <div class="absolute -right-4 -top-4 h-32 w-32 rounded-full bg-white/10"></div>

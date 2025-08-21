@@ -3,7 +3,7 @@
     <!-- Header với gradient -->
     <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-8 text-white">
       <div class="relative z-10">
-        <h1 class="text-3xl font-bold mb-2">Quản lý sản phẩm</h1>
+        <h1 class="text-3xl font-bold mb-2 text-white">Quản lý sản phẩm</h1>
         <p class="text-blue-100">Tạo và quản lý danh mục sản phẩm</p>
       </div>
       <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-white/10 to-transparent"></div>
@@ -105,7 +105,7 @@
                   <div class="flex items-center gap-2">
                     <button @click="toggleExpand(p)" class="group/btn inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200">
                       <Blend class="h-4 w-4 text-gray-600 group-hover/btn:text-blue-600" />
-                      <span class="text-sm">{{ expandedId === p.id ? 'Ẩn biến thể' : 'Xem biến thể' }}</span>
+                      <span class="text-sm">{{ expandedId === p.id ? 'Ẩn' : 'Xem' }}</span>
                     </button>
                     <RouterLink :to="{ name: 'admin.products.edit', params: { id: p.id } }" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 transition-all duration-200">
                       <Edit class="h-4 w-4 text-gray-600" />
