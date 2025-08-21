@@ -10,6 +10,12 @@ export const adminRoutes = [
         redirect: { name: 'admin.products' }
       },
       {
+        path: 'dashboard',
+        name: 'admin.dashboard',
+        component: () => import('@/admin/views/Dashboard.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
         path: 'attributes',
         name: 'admin.attributes',
         component: () => import('@/admin/views/Attributes/AttributeIndex.vue'),

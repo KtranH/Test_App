@@ -1,54 +1,112 @@
 <template>
-  <section class="space-y-6">
-    <header class="flex items-center justify-between">
-      <h1 class="text-xl font-semibold tracking-tight">Danh mục</h1>
-      <button class="px-3 py-2 border border-black/15 rounded-lg hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-black/20" @click="openCreate()">Thêm danh mục</button>
-    </header>
-
-    <AdminCard v-if="isLoading">
-      <Skeletons type="cards" :rows="6" />
-    </AdminCard>
-
-    <AdminCard v-else>
-      <ul class="space-y-2">
-        <li v-for="cat in categories" :key="cat.id" class="border border-black/10 rounded-lg p-3 flex items-center justify-between hover:bg-black/5 transition-colors">
-          <div>
-            <div class="font-medium">{{ cat.name }}</div>
-            <div class="text-xs text-black/50">Slug: {{ cat.slug }} · {{ cat.isActive ? 'Active' : 'Inactive' }}</div>
-          </div>
-          <div class="space-x-2">
-            <button class="text-xs px-2 py-1 border rounded-lg hover:bg-black/5" @click="edit(cat)">Sửa</button>
-            <button class="text-xs px-2 py-1 border rounded-lg hover:bg-black/5" @click="remove(cat.id)">Xóa</button>
-          </div>
-        </li>
-        <li v-if="categories.length === 0">
-          <EmptyState :icon="FolderOpen" title="Chưa có danh mục" description="Hãy thêm danh mục mới để bắt đầu sắp xếp sản phẩm." />
-        </li>
-      </ul>
-    </AdminCard>
-
-    <div v-if="store.hasMore" class="flex justify-center mt-4">
-      <button class="px-4 py-2 border rounded-lg hover:bg-black/5 text-sm" @click="store.fetchNextPage" :disabled="isLoading">
-        Tải thêm
-      </button>
-      <div class="ml-3 text-xs text-black/60 self-center">Đã tải {{ categories.length }}/{{ store.total }}</div>
+  <section class="space-y-8">
+    <!-- Header với gradient -->
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-8 text-white">
+      <div class="relative z-10">
+        <h1 class="text-3xl font-bold mb-2">Quản lý danh mục</h1>
+        <p class="text-emerald-100">Tổ chức và phân loại sản phẩm</p>
+      </div>
+      <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-white/10 to-transparent"></div>
+      <div class="absolute -right-4 -top-4 h-32 w-32 rounded-full bg-white/10"></div>
+      <div class="absolute -right-8 top-8 h-16 w-16 rounded-full bg-white/5"></div>
     </div>
 
-    <dialog ref="dialogRef" class="p-0 rounded-lg border border-black/20">
-      <form method="dialog" class="min-w-[340px] p-4 space-y-3" @submit.prevent>
-        <h3 class="font-medium">{{ form.id ? 'Sửa danh mục' : 'Thêm danh mục' }}</h3>
-        <div class="space-y-2">
-          <input v-model="form.name" placeholder="Tên" class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-black/20" />
-          <input v-model="form.slug" placeholder="Slug" class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-black/20" />
-          <select v-model="form.parentId" class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-black/20">
-            <option :value="null">Không có danh mục cha</option>
-            <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
-          <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" v-model="form.isActive" /> Hiển thị</label>
+    <!-- Quick Actions -->
+    <div class="flex items-center justify-between">
+      <button @click="openCreate()" class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:from-emerald-600 hover:to-emerald-700">
+        <FolderPlus class="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
+        Tạo danh mục mới
+      </button>
+      <div class="flex items-center gap-2 text-sm text-gray-600">
+        <Folder class="h-4 w-4" />
+        <span>{{ categories.length }} danh mục</span>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="isLoading" class="rounded-2xl bg-white p-8 shadow-lg border border-gray-100">
+      <div class="flex items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+        <span class="ml-3 text-gray-600">Đang tải danh mục...</span>
+      </div>
+    </div>
+
+    <!-- Categories Grid -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-for="cat in categories" :key="cat.id" class="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
+        <div class="absolute inset-0 bg-gradient-to-r from-emerald-50 to-teal-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative z-10">
+          <div class="flex items-start justify-between mb-4">
+            <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center">
+              <Folder class="h-6 w-6 text-emerald-600" />
+            </div>
+            <div class="flex items-center gap-2">
+              <button @click="edit(cat)" class="group/btn p-2 rounded-lg hover:bg-emerald-100 transition-colors duration-200" title="Chỉnh sửa">
+                <Edit class="h-4 w-4 text-emerald-600 group-hover/btn:scale-110 transition-transform duration-200" />
+              </button>
+              <button @click="remove(cat.id)" class="group/btn p-2 rounded-lg hover:bg-red-100 transition-colors duration-200" title="Xóa">
+                <Trash2 class="h-4 w-4 text-red-600 group-hover/btn:scale-110 transition-transform duration-200" />
+              </button>
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ cat.name }}</h3>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <Hash class="h-4 w-4" />
+                <span>{{ cat.slug }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <CheckCheck v-if="cat.isActive" class="h-4 w-4 text-emerald-600" />
+                <X v-else class="h-4 w-4 text-gray-400" />
+                <span class="text-sm text-gray-600">{{ cat.isActive ? 'Đang hiển thị' : 'Đã ẩn' }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="pt-2 flex justify-end gap-2">
-          <button class="px-3 py-2 border rounded-lg hover:bg-black/5" @click="closeDialog">Hủy</button>
-          <button class="px-3 py-2 border rounded-lg hover:bg-black/5" @click="save">Lưu</button>
+      </div>
+      
+      <!-- Empty State -->
+      <div v-if="categories.length === 0" class="col-span-full">
+        <EmptyState :icon="FolderOpen" title="Chưa có danh mục" description="Hãy thêm danh mục mới để bắt đầu sắp xếp sản phẩm." />
+      </div>
+    </div>
+
+    <dialog ref="dialogRef" class="p-0 rounded-2xl border border-gray-200 shadow-2xl">
+      <form method="dialog" class="min-w-[400px] p-6 space-y-4" @submit.prevent>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center">
+            <FolderPlus class="h-5 w-5 text-emerald-600" />
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900">{{ form.id ? 'Chỉnh sửa danh mục' : 'Tạo danh mục mới' }}</h3>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tên danh mục</label>
+            <input v-model="form.name" placeholder="Nhập tên danh mục..." class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Slug</label>
+            <input v-model="form.slug" placeholder="nhap-ten-danh-muc" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Danh mục cha</label>
+            <select v-model="form.parentId" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200">
+              <option :value="null">Không có danh mục cha</option>
+              <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <label class="flex items-center gap-3 text-sm">
+            <input type="checkbox" v-model="form.isActive" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded" />
+            <span class="text-gray-700">Hiển thị danh mục</span>
+          </label>
+        </div>
+        
+        <div class="pt-4 flex justify-end gap-3">
+          <button type="button" class="px-6 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors duration-200" @click="closeDialog">Hủy</button>
+          <button type="button" class="px-6 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl" @click="save">Lưu</button>
         </div>
       </form>
     </dialog>
@@ -59,20 +117,20 @@
 import { ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useCategoryStore } from '@/admin/stores/category.store'
-import AdminCard from '@/admin/components/ui/AdminCard.vue'
-import Skeletons from '@/admin/components/ui/Skeletons.vue'
 import EmptyState from '@/admin/components/ui/EmptyState.vue'
-import { FolderOpen } from 'lucide-vue-next'
+import { 
+  FolderOpen, Folder, FolderPlus, Edit, Trash2, Hash, CheckCheck, X 
+} from 'lucide-vue-next'
 
 const store = useCategoryStore()
 const { categories, isLoading } = storeToRefs(store)
-const { createCategory, updateCategory, removeCategory, ensureInitialized } = store
+const { createCategory, updateCategory, removeCategory, fetchAll } = store
 
 const dialogRef = ref(null)
 const form = ref({ id: null, name: '', slug: '', parentId: null, isActive: true })
 
 onMounted(async () => {
-  await ensureInitialized()
+  await fetchAll()
 })
 
 const openCreate = () => { form.value = { id: null, name: '', slug: '', parentId: null, isActive: true }; dialogRef.value?.showModal() }
@@ -88,7 +146,10 @@ const remove = (id) => removeCategory(id)
 </script>
 
 <style scoped>
-dialog::backdrop { background: rgba(0,0,0,.2); }
+dialog::backdrop { 
+  background: rgba(0,0,0,0.4); 
+  backdrop-filter: blur(4px);
+}
 </style>
 
 

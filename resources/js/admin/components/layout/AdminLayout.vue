@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-white to-slate-50 text-black flex">
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 text-gray-900 flex">
     <AdminSidebar />
     <div class="flex-1 flex flex-col">
       <AdminHeader />
-      <main class="p-4 sm:p-6">
+      <main class="flex-1 p-6 lg:p-8">
         <div class="mx-auto w-full max-w-[1400px]">
           <RouterView />
         </div>

@@ -16,6 +16,17 @@
     </div>
 
     <nav class="p-4 space-y-1">
+      <RouterLink to="/admin/dashboard" custom v-slot="{ href, navigate, isActive }">
+        <a
+          :href="href"
+          @click="navigate"
+          :class="[baseItemClass, isActive ? activeItemClass : '']"
+        >
+          <Home class="h-5 w-5" />
+          <span>Tổng quan</span>
+        </a>
+      </RouterLink>
+
       <RouterLink to="/admin/products" custom v-slot="{ href, navigate, isActive }">
         <a
           :href="href"
