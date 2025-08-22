@@ -25,7 +25,7 @@ export function useProducts() {
     return products.value.filter(p => {
       const okName = q.value ? p.name.toLowerCase().includes(q.value.toLowerCase()) : true
       const okStatus = status.value ? p.status === status.value : true
-      const okCat = categoryId.value ? p.categoryId === categoryId.value : true
+      const okCat = categoryId.value ? p.category_id === categoryId.value : true
       return okName && okStatus && okCat
     })
   })

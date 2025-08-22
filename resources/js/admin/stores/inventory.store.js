@@ -5,6 +5,14 @@ import { InventoryApi } from '@/admin/api/inventory'
 
 const INVENTORY_KEY = 'inventory'
 
+// Helper function to calculate if stock is low
+// Logic: Stock is considered low when quantity <= safetyStock
+// Special case: If safetyStock is 0 or negative, stock is never considered low
+const calculateIsLowStock = (quantity, safetyStock) => {
+  if (safetyStock <= 0) return false
+  return quantity <= safetyStock
+}
+
 export const useInventoryStore = defineStore('admin.inventory', () => {
   const items = ref(db.getCollection(INVENTORY_KEY))
   const isLoading = ref(false)
@@ -19,7 +27,7 @@ export const useInventoryStore = defineStore('admin.inventory', () => {
       productVariantId,
       quantity,
       safetyStock,
-      isLowStock: quantity <= safetyStock
+      isLowStock: calculateIsLowStock(quantity, safetyStock)
     }
     if (idx >= 0) items.value[idx] = entity
     else items.value.push(entity)
@@ -30,7 +38,12 @@ export const useInventoryStore = defineStore('admin.inventory', () => {
     const idx = items.value.findIndex(i => i.productVariantId === productVariantId)
     if (idx < 0) return
     const nextQty = Math.max(0, items.value[idx].quantity + delta)
-    items.value[idx] = { ...items.value[idx], quantity: nextQty, isLowStock: nextQty <= items.value[idx].safetyStock }
+    const currentItem = items.value[idx]
+    items.value[idx] = { 
+      ...currentItem, 
+      quantity: nextQty, 
+      isLowStock: calculateIsLowStock(nextQty, currentItem.safetyStock) 
+    }
     db.setCollection(INVENTORY_KEY, items.value)
   }
 
@@ -47,7 +60,7 @@ export const useInventoryStore = defineStore('admin.inventory', () => {
       reservedQuantity: reserved,
       availableQuantity: available,
       safetyStock: threshold,
-      isLowStock: available <= threshold,
+      isLowStock: calculateIsLowStock(quantity, threshold),
       isInStock: !!r.is_in_stock,
       isBackorderAllowed: !!r.is_backorder_allowed,
       lastRestockedAt: r.last_restocked_at || null,
@@ -97,7 +110,65 @@ export const useInventoryStore = defineStore('admin.inventory', () => {
     await fetchFirstPage()
   }
 
-  return { items, isLoading, total, hasMore: computed(() => !!pagingNext.value), setQty, adjust, fetchFirstPage, fetchNextPage, ensureInitialized }
+  // Update stock status for all items
+  const updateStockStatus = () => {
+    items.value.forEach(item => {
+      item.isLowStock = calculateIsLowStock(item.quantity, item.safetyStock)
+    })
+    db.setCollection(INVENTORY_KEY, items.value)
+  }
+
+  // Test method to verify low stock logic
+  const testLowStockLogic = () => {
+    const testCases = [
+      { quantity: 0, safetyStock: 10, expected: true },
+      { quantity: 5, safetyStock: 10, expected: true },
+      { quantity: 10, safetyStock: 10, expected: true },
+      { quantity: 11, safetyStock: 10, expected: false },
+      { quantity: 20, safetyStock: 10, expected: false },
+      { quantity: 5, safetyStock: 0, expected: false },
+      { quantity: 0, safetyStock: 0, expected: false }
+    ]
+    
+    const results = testCases.map(test => ({
+      ...test,
+      actual: calculateIsLowStock(test.quantity, test.safetyStock),
+      passed: calculateIsLowStock(test.quantity, test.safetyStock) === test.expected
+    }))
+    
+    console.log('Low Stock Logic Test Results:', results)
+    return results
+  }
+
+  // Computed properties for inventory status
+  const lowStockItems = computed(() => 
+    items.value.filter(item => item.isLowStock)
+  )
+  
+  const criticalStockItems = computed(() => 
+    items.value.filter(item => item.quantity === 0 && item.safetyStock > 0)
+  )
+  
+  const stableStockItems = computed(() => 
+    items.value.filter(item => !item.isLowStock)
+  )
+
+  return { 
+    items, 
+    isLoading, 
+    total, 
+    hasMore: computed(() => !!pagingNext.value), 
+    lowStockItems,
+    criticalStockItems,
+    stableStockItems,
+    setQty, 
+    adjust, 
+    fetchFirstPage, 
+    fetchNextPage, 
+    ensureInitialized,
+    updateStockStatus,
+    testLowStockLogic
+  }
 })
 
 

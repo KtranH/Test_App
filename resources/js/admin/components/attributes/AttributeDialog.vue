@@ -16,8 +16,10 @@
           <input 
             v-model="form.name" 
             placeholder="Ví dụ: Màu sắc, Kích thước, Chất liệu..." 
-            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+            class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200"
+            :class="errors.name ? 'border-red-400' : 'border-gray-200'"
           />
+          <div v-if="errors.name" class="text-[12px] text-red-600 mt-1">{{ errors.name }}</div>
         </div>
         
         <div>
@@ -25,8 +27,10 @@
           <input 
             v-model="form.code" 
             placeholder="Ví dụ: color, size, material..." 
-            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 font-mono"
+            class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 font-mono"
+            :class="errors.code ? 'border-red-400' : 'border-gray-200'"
           />
+          <div v-if="errors.code" class="text-[12px] text-red-600 mt-1">{{ errors.code }}</div>
         </div>
         
         <div>
@@ -86,6 +90,7 @@ const emit = defineEmits(['update:modelValue', 'save'])
 
 const dialogRef = ref(null)
 const form = ref({ id: null, name: '', code: '', type: 'select', is_active: false })
+const errors = ref({ name: '', code: '' })
 
 // Watch for changes in attribute prop
 watch(() => props.attribute, (newAttr) => {
@@ -94,6 +99,7 @@ watch(() => props.attribute, (newAttr) => {
   } else {
     form.value = { id: null, name: '', code: '', type: 'select', is_active: false }
   }
+  errors.value = { name: '', code: '' }
 }, { immediate: true })
 
 // Watch for modelValue changes to show/hide dialog
@@ -109,8 +115,15 @@ const closeDialog = () => {
   emit('update:modelValue', false)
 }
 
+const validate = () => {
+  errors.value = { name: '', code: '' }
+  if (!form.value.name?.trim()) errors.value.name = 'Tên thuộc tính là bắt buộc'
+  if (!form.value.code?.trim()) errors.value.code = 'Mã thuộc tính là bắt buộc'
+  return !errors.value.name && !errors.value.code
+}
+
 const save = () => {
-  if (!form.value.name || !form.value.code) return
+  if (!validate()) return
   emit('save', { ...form.value })
   closeDialog()
 }

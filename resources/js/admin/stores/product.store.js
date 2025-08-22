@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { db, uid } from '@/admin/services/db'
 import { ProductsApi } from '@/admin/api/products'
+import { ProductVariantsApi } from '@/admin/api/product_variants'
+import { generateSku } from '@/admin/services/sku'
 
 const PRODUCTS_KEY = 'products'
 const VARIANTS_KEY = 'variants'
@@ -24,17 +26,25 @@ export const useProductStore = defineStore('admin.products', () => {
     return map
   })
 
-  const createProduct = (payload) => {
+  const createProduct = async (payload) => {
+    // Gọi API tạo sản phẩm
+    console.log("test payload", payload)
+    // Ensure SKU exists
+    const sku = payload.sku && String(payload.sku).trim() ? payload.sku : generateSku(payload.name)
+    const requestBody = { ...payload, sku }
+    const respone = await ProductsApi.createProduct(requestBody)
+    if (respone?.error) return
     const entity = {
       id: uid(),
       name: payload.name,
       slug: payload.slug,
-      categoryId: payload.categoryId || null,
+      category_id: payload.category_id || null,
       description: payload.description || '',
       status: payload.status || 'draft',
       basePrice: payload.basePrice || 0,
       attributesSelected: payload.attributesSelected || {},
       imageIds: [],
+      sku,
     }
     products.value.push(entity)
     db.setCollection(PRODUCTS_KEY, products.value)
@@ -45,7 +55,7 @@ export const useProductStore = defineStore('admin.products', () => {
         id: p.id,
         name: p.name,
         slug: p.slug,
-        categoryId: p.category_id ?? null,
+        category_id: p.category_id ?? null,
         description: p.description ?? '',
         status: p.is_active ? 'active' : 'archived',
         basePrice: Number(p.base_price ?? 0),
@@ -116,21 +126,54 @@ export const useProductStore = defineStore('admin.products', () => {
     await fetchFirstPage()
   }
 
-  const updateProduct = (id, patch) => {
+  const updateProduct = async   (id, patch) => {
+    // Gọi API cập nhật sản phẩm
+    const respone = await ProductsApi.updateProduct(id, patch)
+    if (respone?.error) return
     const idx = products.value.findIndex(p => p.id === id)
     if (idx < 0) return
     products.value[idx] = { ...products.value[idx], ...patch }
     db.setCollection(PRODUCTS_KEY, products.value)
   }
 
-  const removeProduct = (id) => {
+  // Cập nhật sản phẩm chỉ trên client (không gọi API)
+  const updateProductLocal = (id, patch) => {
+    const idx = products.value.findIndex(p => p.id === id)
+    if (idx < 0) return
+    products.value[idx] = { ...products.value[idx], ...patch }
+    db.setCollection(PRODUCTS_KEY, products.value)
+  }
+
+  const removeProduct = async (id) => {
+    // Gọi API xóa sản phẩm
+    const respone = await ProductsApi.deleteProduct(id)
+    if (respone?.error) return
     products.value = products.value.filter(p => p.id !== id)
     variants.value = variants.value.filter(v => v.productId !== id)
     db.setCollection(PRODUCTS_KEY, products.value)
     db.setCollection(VARIANTS_KEY, variants.value)
   }
 
-  const upsertVariant = (variant) => {
+  const upsertVariant = async (variant) => {
+    // Gọi API tạo/cập nhật biến thể
+    const payload = {
+      // required
+      product_id: variant.productId ?? variant.product_id,
+      sku: variant.sku,
+      name: variant.name,
+      price: variant.price,
+      // optionals / mappings
+      sale_price: variant.salePrice ?? null,
+      weight: variant.weight ?? null,
+      width: variant.width ?? null,
+      height: variant.height ?? null,
+      length: variant.length ?? null,
+      is_active: variant.isActive ?? true,
+      attribute_combination: variant.attributeCombination ?? {},
+      id: variant.id ?? undefined,
+    }
+    const respone = await ProductVariantsApi.createProductVariant(payload)
+    if (respone?.error) return
     const entity = { id: variant.id || uid(), ...variant }
     const idx = variants.value.findIndex(v => v.id === entity.id)
     if (idx >= 0) variants.value[idx] = { ...variants.value[idx], ...entity }
@@ -157,6 +200,7 @@ export const useProductStore = defineStore('admin.products', () => {
     ensureInitialized,
     createProduct,
     updateProduct,
+    updateProductLocal,
     removeProduct,
     upsertVariant,
     removeVariant,

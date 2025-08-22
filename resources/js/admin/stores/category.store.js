@@ -38,14 +38,10 @@ export const useCategoryStore = defineStore('admin.categories', () => {
   }
 
   const updateCategory = async (id, patch) => {
-    console.log('Store updateCategory được gọi với:', { id, patch })
-    
     const respone = await CategoriesApi.updateCategory(id, patch)
     if (respone.error) return
     const idx = categories.value.findIndex(c => c.id === id)
     if (idx < 0) return
-    
-    console.log('Tìm thấy category tại index:', idx, 'với data:', categories.value[idx])
     
     // Map snake_case từ backend sang camelCase cho frontend
     const mappedPatch = {}
@@ -66,33 +62,20 @@ export const useCategoryStore = defineStore('admin.categories', () => {
       }
     })
     
-    console.log('Mapped patch:', mappedPatch)
-    
     // Force reactive update bằng cách tạo array mới hoàn toàn
     const updatedCategories = categories.value.map((cat, index) => {
       if (index === idx) {
         const updated = { ...cat, ...mappedPatch }
-        console.log('Category được cập nhật:', updated)
         return updated
       }
       return cat
     })
     
-    console.log('Categories trước khi cập nhật:', categories.value)
-    console.log('Categories sau khi cập nhật:', updatedCategories)
-    
     // Gán lại toàn bộ array để trigger reactive update
     categories.value = updatedCategories
     
-    // Sử dụng watch để đảm bảo reactive updates hoạt động
-    watch(categories, (newVal) => {
-      console.log('Categories trong watch:', newVal)
-    }, { immediate: true, deep: true, flush: 'post' })
-    
     // Đợi DOM được cập nhật
     await nextTick()
-    
-    console.log('Categories sau khi gán:', categories.value)
     
     db.setCollection(CATEGORIES_KEY, categories.value)
   }

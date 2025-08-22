@@ -46,9 +46,7 @@
             </th>
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200 w-48">
               <div class="flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 100 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
-                </svg>
+                <SlidersVertical class="w-4 h-4" />
                 Điều chỉnh
               </div>
             </th>
@@ -81,11 +79,13 @@
                   <div 
                     class="h-2 rounded-full transition-all duration-300"
                     :class="{
-                      'bg-red-500': item.quantity <= item.safetyStock * 0.5,
-                      'bg-yellow-500': item.quantity > item.safetyStock * 0.5 && item.quantity <= item.safetyStock,
-                      'bg-green-500': item.quantity > item.safetyStock
+                      'bg-red-500': item.isLowStock,
+                      'bg-yellow-500': !item.isLowStock && item.quantity <= item.safetyStock * 1.5,
+                      'bg-green-500': !item.isLowStock && item.quantity > item.safetyStock * 1.5
                     }"
-                    :style="{ width: `${Math.min((item.quantity / (item.safetyStock * 2)) * 100, 100)}%` }"
+                    :style="{ 
+                      width: `${item.safetyStock > 0 ? Math.min((item.quantity / (item.safetyStock * 2)) * 100, 100) : 0}%` 
+                    }"
                   ></div>
                 </div>
               </div>
@@ -114,24 +114,6 @@
             <td class="px-4 py-4 whitespace-nowrap">
               <div class="flex items-center gap-2">
                 <button 
-                  class="group/btn p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 border border-transparent hover:border-red-200"
-                  @click="$emit('adjust', item.productVariantId, -1)"
-                  title="Giảm 1"
-                >
-                  <svg class="w-4 h-4 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                  </svg>
-                </button>
-                <button 
-                  class="group/btn p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200 border border-transparent hover:border-green-200"
-                  @click="$emit('adjust', item.productVariantId, 1)"
-                  title="Tăng 1"
-                >
-                  <svg class="w-4 h-4 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                  </svg>
-                </button>
-                <button 
                   class="group/btn p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200"
                   @click="$emit('openAdjustModal', item)"
                   title="Điều chỉnh số lượng"
@@ -149,13 +131,14 @@
 
 <script setup>
 import AdminCard from '@/admin/components/ui/AdminCard.vue'
-import { Settings } from 'lucide-vue-next'
+import { Settings, SlidersVertical } from 'lucide-vue-next'
 
 defineProps({
   items: { type: Array, required: true }
 })
 
 defineEmits(['adjust', 'openAdjustModal'])
+
 </script>
 
 <style scoped>

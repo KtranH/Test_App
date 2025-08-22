@@ -1,7 +1,10 @@
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <div class="text-sm font-semibold tracking-tight">Ảnh sản phẩm</div>
+      <div class="text-sm font-semibold tracking-tight flex items-center gap-2">
+        <Images class="h-4 w-4" />
+        Ảnh sản phẩm
+      </div>
       <label class="inline-flex items-center gap-2 cursor-pointer px-3 py-1.5 border border-black/15 rounded-lg bg-white hover:bg-black/5 transition-colors text-xs font-medium">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/>
@@ -68,11 +71,15 @@
 <script setup>
 import { computed } from 'vue'
 import { useMediaStore } from '@/admin/stores/media.store'
+import { Images } from 'lucide-vue-next'
 
 const props = defineProps({ productId: { type: String, required: true } })
 const media = useMediaStore()
 
-const productImages = computed(() => media.images.filter(i => i.productId === props.productId).sort((a, b) => a.position - b.position))
+const productImages = computed(() => {
+  const images = media.images.filter(i => i.productId === props.productId).sort((a, b) => a.position - b.position)
+  return images
+})
 
 const onFiles = (e) => {
   const files = Array.from(e.target.files || [])

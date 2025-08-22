@@ -17,7 +17,7 @@
         <div class="flex items-center gap-3">
           <button 
             class="group relative px-6 py-3 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-900 font-medium rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2"
-            @click="openCreate()"
+            @click="handleCreate()"
           >
             <Plus class="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
             Thêm thuộc tính
@@ -47,14 +47,20 @@
     <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6" data-aos="fade-up" data-aos-duration="1200">
       <AttributeCard 
         v-for="(attr, index) in attributes" 
-        :key="attr.id"
+        :key="`${attr.id}-${attr.isActive}`"
         :attribute="attr"
         :values="valuesByAttrId[attr.id] || []"
+        :has-more="hasMoreValues(attr.id)"
+        :total="getValuesTotal(attr.id)"
         :style="{ animationDelay: `${index * 100}ms` }"
         @edit="handleEdit"
         @toggle="confirmToggle"
         @add-value="(data) => handleAddValue(attr.id, data)"
         @remove-value="removeValue"
+        @load-more="() => handleLoadMoreValues(attr.id)"
+        @toggle-value="handleToggleValue"
+        @edit-value="handleEditValue"
+        @create-value="handleCreateValue"
       />
     </div>
 
@@ -80,6 +86,14 @@
       @save="handleSave"
     />
 
+    <!-- Value Dialog -->
+    <AttributeValueDialog 
+      v-model="showValueDialog"
+      :attribute-type="editingValue?.attribute?.type || attributes.find(a => a.id === editingValue?.attributeId)?.type || 'select'"
+      :value="editingValue"
+      @save="handleSaveValue"
+    />
+
     <ConfirmDialog ref="confirmRef" />
   </section>
 </template>
@@ -92,8 +106,10 @@ import Skeletons from '@/admin/components/ui/Skeletons.vue'
 import AttributeStats from '@/admin/components/attributes/AttributeStats.vue'
 import AttributeCard from '@/admin/components/attributes/AttributeCard.vue'
 import AttributeDialog from '@/admin/components/attributes/AttributeDialog.vue'
+import AttributeValueDialog from '@/admin/components/attributes/AttributeValueDialog.vue'
 import ConfirmDialog from '@/admin/components/ui/ConfirmDialog.vue'
 import { LoaderCircle, Plus } from 'lucide-vue-next'
+import { message } from 'ant-design-vue'
 
 const {
   store,
@@ -111,12 +127,22 @@ const {
   removeValue,
   refresh,
   toggleActive,
-  ensureInitialized
+  toggleAttributeValue,
+  ensureInitialized,
+  newValueByAttrId,
+  newColorByAttrId,
+  hasMoreValues,
+  getValuesTotal,
+  loadMoreValues
 } = useAttributes()
 
 // Local state for dialog
 const showDialog = ref(false)
 const editingAttribute = ref({})
+
+// Local state for value dialog
+const showValueDialog = ref(false)
+const editingValue = ref(null)
 
 // Override edit function to handle dialog state
 const handleEdit = (attr) => {
@@ -131,14 +157,98 @@ const handleCreate = () => {
 }
 
 // Override save function
-const handleSave = (data) => {
-  save(data)
-  showDialog.value = false
+const handleSave = async (data) => {
+  try {
+    await save(data)
+    showDialog.value = false
+    editingAttribute.value = {}
+    // Refresh data sau khi lưu
+    await refresh()
+    message.success('Thao tác thuộc tính thành công!')
+  } catch (error) {
+    console.error('Lỗi khi lưu thuộc tính:', error)
+    message.error('Thao tác thuộc tính thất bại!')
+  }
 }
 
 // Override addNewValue to handle the new data structure
 const handleAddValue = (attributeId, data) => {
+  // Gọi addNewValue với cả attributeId và data
   addNewValue(attributeId, data)
+}
+
+// Handle load more values for a specific attribute
+const handleLoadMoreValues = async (attributeId) => {
+  await loadMoreValues(attributeId)
+}
+
+// Handle edit attribute value
+const handleEditValue = (value) => {
+  // Đảm bảo value có đúng cấu trúc
+  editingValue.value = {
+    ...value,
+    attributeId: value.attributeId || value.attribute?.id || editingAttribute.value?.id
+  }
+  showValueDialog.value = true
+}
+
+// Handle create new value for an attribute
+const handleCreateValue = (attribute) => {
+  editingValue.value = {
+    id: null,
+    value: '',
+    attributeId: attribute.id,
+    attribute: attribute
+  }
+  showValueDialog.value = true
+}
+
+// Handle toggle attribute value visibility
+const handleToggleValue = async (data) => {
+  const { id, isActive } = data
+  
+  if (!isActive) {
+    // Khi ẩn giá trị, hiển thị confirm dialog
+    const ok = await confirmRef.value?.open?.({
+      title: 'Ẩn giá trị thuộc tính?',
+      message: `Giá trị này sẽ bị ẩn và không thể chọn khi tạo sản phẩm.\nBạn vẫn muốn tiếp tục?`,
+      confirmText: 'Ẩn',
+      cancelText: 'Hủy',
+      confirmType: 'danger',
+    })
+    if (!ok) return
+  }
+  
+  await toggleAttributeValue(id, isActive)
+}
+
+// Handle save attribute value
+const handleSaveValue = async (data) => {
+  const { id, data: valueData } = data
+  
+  if (id) {
+    // Update existing value
+    await store.updateValue(id, valueData)
+  } else {
+    // Create new value - cần có attributeId
+    const attributeId = editingValue.value?.attributeId
+    if (!attributeId) {
+      console.error('Missing attributeId for new value')
+      return
+    }
+    
+    await addNewValue(attributeId, {
+      value: valueData.value,
+      meta: {
+        hex: valueData.color_code,
+        code: valueData.code,
+        image: valueData.image
+      }
+    })
+  }
+  
+  // Refresh data
+  await refresh()
 }
 
 // Xác nhận trước khi tắt

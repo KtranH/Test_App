@@ -3,6 +3,7 @@
     class="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
     :class="{ 'opacity-60 grayscale pointer-events-auto': attribute.isActive === false }"
   >
+
     <div class="p-6">
       <!-- Header -->
       <div class="flex items-start justify-between mb-4">
@@ -42,10 +43,17 @@
             @click="$emit('edit', attribute)"
             title="Sửa thuộc tính"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
+            <Pencil class="w-4 h-4" />
           </button>
+          
+          <button 
+            class="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-200"
+            @click="$emit('createValue', attribute)"
+            title="Thêm giá trị mới"
+          >
+            <Plus class="w-4 h-4" />
+          </button>
+          
           <button
             class="px-3 py-1.5 rounded-lg border transition-colors duration-200"
             :class="attribute.isActive ? 'border-green-200 text-green-700 bg-green-50 hover:bg-green-100' : 'border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100'"
@@ -64,8 +72,14 @@
       <AttributeValues 
         :attribute="attribute"
         :values="values"
+        :has-more="hasMore"
+        :total="total"
         @add-value="$emit('addValue', $event)"
         @remove-value="$emit('removeValue', $event)"
+        @load-more="$emit('loadMore', $event)"
+        @toggle-value="$emit('toggleValue', $event)"
+        @edit-value="$emit('editValue', $event)"
+        @create-value="$emit('createValue', $event)"
       />
     </div>
   </div>
@@ -73,11 +87,14 @@
 
 <script setup>
 import AttributeValues from './AttributeValues.vue'
+import { Plus, Pencil } from 'lucide-vue-next'
 
 defineProps({
   attribute: { type: Object, required: true },
-  values: { type: Array, default: () => [] }
+  values: { type: Array, default: () => [] },
+  hasMore: { type: Boolean, default: false },
+  total: { type: Number, default: 0 }
 })
 
-defineEmits(['edit', 'toggle', 'addValue', 'removeValue'])
+defineEmits(['edit', 'toggle', 'addValue', 'removeValue', 'loadMore', 'toggleValue', 'editValue', 'createValue'])
 </script>

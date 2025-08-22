@@ -10,6 +10,7 @@ export const useMediaStore = defineStore('admin.media', () => {
   const isLoading = ref(false)
 
   const addImage = (productId, fileOrUrl, { isCover = false, alt = '', position = 0 } = {}) => {
+    
     const entity = { id: uid(), productId, url: '', isCover, alt, position }
     if (typeof fileOrUrl === 'string') {
       entity.url = fileOrUrl

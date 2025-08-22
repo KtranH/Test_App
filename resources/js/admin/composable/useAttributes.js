@@ -1,12 +1,12 @@
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAttributeStore } from '@/admin/stores/attribute.store'
 import { message } from 'ant-design-vue'
 
 export function useAttributes() {
   const store = useAttributeStore()
-  const { attributes, valuesByAttrId, isLoading } = storeToRefs(store)
-  const { createAttribute, updateAttribute, disableAttribute, addValue, ensureInitialized } = store
+  const { attributes, valuesByAttrId, isLoading, valuesPagingNext, valuesTotal } = storeToRefs(store)
+  const { createAttribute, updateAttribute, disableAttribute, addValue, ensureInitialized, fetchMoreValues, toggleValue } = store
 
   // Reactive data
   const dialogRef = ref(null)
@@ -33,6 +33,15 @@ export function useAttributes() {
   const variantDefiningAttributes = computed(() => attributes.value.filter(a => a.isVariantDefining).length)
   const colorAttributes = computed(() => attributes.value.filter(a => a.type === 'color').length)
   const selectAttributes = computed(() => attributes.value.filter(a => a.type === 'select').length)
+  
+  // Helper function để kiểm tra có cần load more values không
+  const hasMoreValues = (attributeId) => {
+    return !!valuesPagingNext.value[attributeId]
+  }
+  
+  const getValuesTotal = (attributeId) => {
+    return valuesTotal.value[attributeId] || 0
+  }
 
   // Methods
   const openCreate = () => {
@@ -47,21 +56,21 @@ export function useAttributes() {
 
   const closeDialog = () => dialogRef.value?.close()
 
-  const save = () => {
+  const save = (data) => {
     try {
-      if (!form.value.name || !form.value.code) return
+      if (!data.name || !data.code) return
       
       // Map frontend fields sang backend fields
       const backendPayload = {
-        name: form.value.name,
-        code: form.value.code,
-        type: form.value.type || 'select',
-        is_active: form.value.is_active ?? true,
-        is_filterable: form.value.is_active ?? false, // is_active cũng dùng làm is_filterable
+        name: data.name,
+        code: data.code,
+        type: data.type || 'select',
+        is_active: data.is_active ?? true,
+        is_filterable: data.is_active ?? false, // is_active cũng dùng làm is_filterable
       }
       
-      if (form.value.id) {
-        updateAttribute(form.value.id, backendPayload)
+      if (data.id) {
+        updateAttribute(data.id, backendPayload)
       } else {
         createAttribute(backendPayload)
       }
@@ -94,15 +103,25 @@ export function useAttributes() {
     }
   }
 
-  const addNewValue = async (attributeId) => {
-    const valueInput = (newValueByAttrId.value[attributeId] || '').trim()
+  const addNewValue = async (attributeId, data = null) => {
+    let valueInput = ''
+    let meta = {}
+    
+    if (data && data.value) {
+      // Nếu có data được truyền vào, sử dụng data đó
+      valueInput = data.value.trim()
+      meta = data.meta || {}
+    } else {
+      // Nếu không có data, sử dụng giá trị từ local state
+      valueInput = (newValueByAttrId.value[attributeId] || '').trim()
+      if (newColorByAttrId.value[attributeId] && (attributes.value.find(a => a.id === attributeId)?.type === 'color')) {
+        meta.hex = newColorByAttrId.value[attributeId]
+      }
+    }
+    
     if (!valueInput) {
       valueErrors.value[attributeId] = 'Vui lòng nhập giá trị trước khi thêm'
       return
-    }
-    const meta = {}
-    if (newColorByAttrId.value[attributeId] && (attributes.value.find(a => a.id === attributeId)?.type === 'color')) {
-      meta.hex = newColorByAttrId.value[attributeId]
     }
     
     try {
@@ -126,17 +145,69 @@ export function useAttributes() {
   }
 
   const refresh = () => {
+    // Clear pagination info trước khi refresh
+    store.clearPagingInfo()
     store.fetchFirstPage()
+  }
+  
+  const loadMoreValues = async (attributeId) => {
+    try {
+      const result = await fetchMoreValues(attributeId)
+      if (result) {
+        message.success(`Đã tải thêm ${result.length} giá trị`)
+      }
+      return result
+    } catch (error) {
+      console.error('Error loading more values:', error)
+      message.error('Không thể tải thêm giá trị')
+      return null
+    }
   }
 
   const toggleActive = async (attr) => {
     try {
       const next = !attr.isActive
+      
       await updateAttribute(attr.id, { is_active: next })
+      
+      // Cập nhật store để trigger reactivity
+      const attrIndex = attributes.value.findIndex(a => a.id === attr.id)
+      
+      if (attrIndex !== -1) {
+        // Sử dụng spread operator để tạo object mới và trigger reactivity
+        const updatedAttr = { 
+          ...attributes.value[attrIndex], 
+          isActive: next 
+        }
+        attributes.value[attrIndex] = updatedAttr
+        
+        // Force trigger reactivity bằng cách gán lại array
+        attributes.value = [...attributes.value]
+        
+        // Đảm bảo DOM được cập nhật
+        await nextTick()     
+      }
+      
       message.success(next ? 'Đã bật thuộc tính' : 'Đã tắt thuộc tính')
     } catch (e) {
       console.error(e)
       message.error('Không thể cập nhật trạng thái')
+    }
+  }
+
+  const toggleAttributeValue = async (id, isActive) => {
+    try {
+      const result = await store.toggleValue(id, isActive)
+      if (result) {
+        message.success(isActive ? 'Đã hiện giá trị thuộc tính' : 'Đã ẩn giá trị thuộc tính')
+      } else {
+        message.error('Không thể cập nhật trạng thái giá trị thuộc tính')
+      }
+      return result
+    } catch (error) {
+      console.error('Error toggling attribute value:', error)
+      message.error('Không thể cập nhật trạng thái giá trị thuộc tính')
+      return false
     }
   }
 
@@ -160,6 +231,8 @@ export function useAttributes() {
     attributes,
     valuesByAttrId,
     isLoading,
+    valuesPagingNext,
+    valuesTotal,
     
     // Reactive data
     dialogRef,
@@ -175,6 +248,10 @@ export function useAttributes() {
     colorAttributes,
     selectAttributes,
     
+    // Helper functions
+    hasMoreValues,
+    getValuesTotal,
+    
     // Methods
     openCreate,
     edit,
@@ -185,7 +262,9 @@ export function useAttributes() {
     addNewValue,
     applyPreset,
     refresh,
+    loadMoreValues,
     toggleActive,
+    toggleAttributeValue,
     removeValue,
     ensureInitialized
   }

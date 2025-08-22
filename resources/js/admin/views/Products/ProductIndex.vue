@@ -21,14 +21,19 @@
       <div class="flex items-center gap-3">
         <RouterLink
           :to="{ name: 'admin.products.create' }"
-          class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:from-blue-600 hover:to-blue-700"
+          class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-900 font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:from-blue-100 hover:to-indigo-100"
         >
           <Plus class="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
           Tạo sản phẩm mới
         </RouterLink>
-        <button @click="refresh()" class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:from-blue-600 hover:to-blue-700">
-          <LoaderCircle class="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
-          Tải mới
+        <button
+          @click="refresh()"
+          class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-900 font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:from-blue-100 hover:to-indigo-100"
+        >
+          <span class="flex items-center gap-2 text-blue-900 group-hover:text-blue-400">
+            <LoaderCircle class="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
+            Tải mới
+          </span>
         </button>
       </div>
       <div class="flex items-center gap-2 text-sm text-gray-600">

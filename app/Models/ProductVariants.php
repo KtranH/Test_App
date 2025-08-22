@@ -101,22 +101,4 @@ class ProductVariants extends ApiModel
             ->withPivot('attribute_id')
             ->withTimestamps();
     }
-
-    protected static function booted(): void
-    {
-        static::created(function (ProductVariants $variant): void {
-            if (!$variant->inventory()->exists()) {
-                InventoryModel::create([
-                    'product_variant_id' => $variant->id,
-                    'quantity' => 0,
-                    'reserved_quantity' => 0,
-                    'available_quantity' => 0,
-                    'low_stock_threshold' => 0,
-                    'is_in_stock' => false,
-                    'is_backorder_allowed' => false,
-                    'last_restocked_at' => null,
-                ]);
-            }
-        });
-    }
 }

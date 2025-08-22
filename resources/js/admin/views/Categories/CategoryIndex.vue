@@ -154,15 +154,17 @@
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Tên danh mục</label>
-            <input v-model="form.name" placeholder="Nhập tên danh mục..." class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200" />
+            <input v-model="form.name" placeholder="Nhập tên danh mục..." class="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200" :class="errors.name ? 'border-red-400' : 'border-gray-300'" />
+            <div v-if="errors.name" class="text-[12px] text-red-600 mt-1">{{ errors.name }}</div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Slug</label>
-            <input v-model="form.slug" placeholder="nhap-ten-danh-muc" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200" />
+            <input v-model="form.slug" placeholder="nhap-ten-danh-muc" class="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200" :class="errors.slug ? 'border-red-400' : 'border-gray-300'" />
+            <div v-if="errors.slug" class="text-[12px] text-red-600 mt-1">{{ errors.slug }}</div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Danh mục cha</label>
-            <select v-model="form.parentId" class="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200">
+            <select v-model="form.parentId" class="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 border-gray-300">
               <option :value="null">Không có danh mục cha</option>
               <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
@@ -203,17 +205,31 @@ const categories = computed(() => store.categories)
 
 const dialogRef = ref(null)
 const form = ref({ id: null, name: '', slug: '', parentId: null, isActive: true })
+const errors = ref({ name: '', slug: '' })
 
 onMounted(async () => {
   await ensureInitialized()
 })
 
-const openCreate = () => { form.value = { id: null, name: '', slug: '', parentId: null, isActive: true }; dialogRef.value?.showModal() }
-const edit = (cat) => { form.value = { ...cat }; dialogRef.value?.showModal() }
+const resetForm = (data = { id: null, name: '', slug: '', parentId: null, isActive: true }) => {
+  form.value = { ...data }
+  errors.value = { name: '', slug: '' }
+}
+
+const openCreate = () => { resetForm(); dialogRef.value?.showModal() }
+const edit = (cat) => { resetForm(cat); dialogRef.value?.showModal() }
 const closeDialog = () => dialogRef.value?.close()
+
+const validate = () => {
+  errors.value = { name: '', slug: '' }
+  if (!form.value.name?.trim()) errors.value.name = 'Tên danh mục là bắt buộc'
+  if (!form.value.slug?.trim()) errors.value.slug = 'Slug là bắt buộc'
+  return !errors.value.name && !errors.value.slug
+}
+
 const save = () => {
   try {
-    if (!form.value.name || !form.value.slug) return
+    if (!validate()) return
     if (form.value.id) {
       // Map camelCase sang snake_case cho backend
       const backendPayload = {

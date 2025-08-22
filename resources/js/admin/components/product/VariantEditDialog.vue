@@ -7,22 +7,25 @@
         </div>
         <div>
           <h3 class="text-lg font-semibold text-gray-900">Chỉnh sửa biến thể</h3>
-          <p class="text-sm text-gray-600">Cập nhật thông tin chung và tồn kho</p>
+          <p class="text-sm text-gray-600">Cập nhật thông tin chung</p>
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-xs text-gray-600 mb-1">SKU</label>
-          <input v-model="form.sku" class="w-full px-3 py-2 border border-gray-300 rounded-xl" />
+          <input v-model="form.sku" class="w-full px-3 py-2 border rounded-xl" :class="errors.sku ? 'border-red-400' : 'border-gray-300'" />
+          <div v-if="errors.sku" class="text-[11px] text-red-600 mt-1">{{ errors.sku }}</div>
         </div>
         <div>
           <label class="block text-xs text-gray-600 mb-1">Tên</label>
-          <input v-model="form.name" class="w-full px-3 py-2 border border-gray-300 rounded-xl" />
+          <input v-model="form.name" class="w-full px-3 py-2 border rounded-xl" :class="errors.name ? 'border-red-400' : 'border-gray-300'" />
+          <div v-if="errors.name" class="text-[11px] text-red-600 mt-1">{{ errors.name }}</div>
         </div>
         <div>
           <label class="block text-xs text-gray-600 mb-1">Giá</label>
-          <input type="number" min="0" v-model.number="form.price" class="w-full px-3 py-2 border border-gray-300 rounded-xl" />
+          <input type="number" min="0" v-model.number="form.price" class="w-full px-3 py-2 border rounded-xl" :class="errors.price ? 'border-red-400' : 'border-gray-300'" />
+          <div v-if="errors.price" class="text-[11px] text-red-600 mt-1">{{ errors.price }}</div>
         </div>
         <div>
           <label class="block text-xs text-gray-600 mb-1">Giá KM</label>
@@ -54,31 +57,11 @@
             </span>
           </div>
         </div>
-
-        <div class="md:col-span-2">
-          <div class="flex items-center gap-2 mb-2 text-gray-900 font-medium">
-            <PackagePlus class="h-4 w-4" /> Tồn kho
-          </div>
-          <div class="flex flex-wrap gap-4">
-            <div class="space-y-1">
-              <div class="text-xs text-gray-600">Số lượng hiện có</div>
-              <input type="number" min="0" v-model.number="form.inventory.quantity" class="w-32 px-3 py-2 border border-gray-300 rounded-xl" placeholder="Số lượng" title="Số lượng hiện có trong kho (quantity)" />
-            </div>
-            <div class="space-y-1">
-              <div class="text-xs text-gray-600">Ngưỡng cảnh báo</div>
-              <input type="number" min="0" v-model.number="form.inventory.low_stock_threshold" class="w-36 px-3 py-2 border border-gray-300 rounded-xl" placeholder="Ngưỡng cảnh báo" title="Ngưỡng cảnh báo tồn kho thấp (low_stock_threshold)" />
-            </div>
-            <label class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-lg border border-gray-200">
-              <input type="checkbox" v-model="form.inventory.is_backorder_allowed" class="accent-indigo-600" />
-              <span>Cho phép backorder</span>
-            </label>
-          </div>
-        </div>
       </div>
 
       <div class="pt-2 flex justify-end gap-3">
         <button type="button" class="px-5 py-2 border border-gray-300 rounded-xl hover:bg-gray-50" @click="handleCancel">Hủy</button>
-        <button type="button" class="px-5 py-2 rounded-xl text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg" @click="handleSave">Lưu</button>
+        <button type="button" class="px-5 py-2 rounded-xl text-blue-900 bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 shadow-lg" @click="handleSave">Lưu</button>
       </div>
     </form>
   </dialog>
@@ -86,7 +69,7 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { Edit, PackagePlus } from 'lucide-vue-next'
+import { Edit } from 'lucide-vue-next'
 
 const dialogRef = ref(null)
 const resolver = ref(null)
@@ -103,6 +86,7 @@ const form = reactive({
   length: null,
   isActive: true,
   attributeCombination: {},
+  // inventory giữ để tương thích nhưng không hiển thị ở dialog
   inventory: {
     quantity: 0,
     reserved_quantity: 0,
@@ -112,6 +96,8 @@ const form = reactive({
     is_backorder_allowed: false,
   },
 })
+
+const errors = reactive({ sku: '', name: '', price: '' })
 
 const chips = computed(() => {
   const out = []
@@ -143,13 +129,28 @@ const open = (variant = {}, options = {}) => {
       is_backorder_allowed: options.inventory?.is_backorder_allowed ?? false,
     },
   })
+  errors.sku = ''
+  errors.name = ''
+  errors.price = ''
   dialogRef.value?.showModal()
   return new Promise((resolve) => { resolver.value = resolve })
 }
 
 const close = () => dialogRef.value?.close()
 
+const validate = () => {
+  errors.sku = ''
+  errors.name = ''
+  errors.price = ''
+  if (!String(form.sku || '').trim()) errors.sku = 'SKU là bắt buộc'
+  if (!String(form.name || '').trim()) errors.name = 'Tên biến thể là bắt buộc'
+  if (form.price == null || Number.isNaN(Number(form.price))) errors.price = 'Giá không hợp lệ'
+  else if (Number(form.price) < 0) errors.price = 'Giá không thể âm'
+  return !errors.sku && !errors.name && !errors.price
+}
+
 const handleSave = () => {
+  if (!validate()) return
   resolver.value?.({ ...form })
   resolver.value = null
   close()

@@ -6,6 +6,7 @@ use Froiden\RestAPI\ApiModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class Products extends ApiModel
 {
@@ -78,11 +79,12 @@ class Products extends ApiModel
         'is_active',
         'sort_order',
         'meta_data',
-        'variants{id,sku,name,price,sale_price,weight,width,height,length,is_active,attribute_combination,deleted_at}',
+        'variants{id,sku,name,price,sale_price,weight,width,height,length,is_active,attribute_combination}',
         'images{id,product_variant_id,image_path,alt_text,title,sort_order,is_primary,is_active}',
     ];
 
     protected $primaryKey = 'id';
+    
 
     public function category(): BelongsTo
     {

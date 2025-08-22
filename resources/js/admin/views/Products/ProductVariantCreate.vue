@@ -1,6 +1,7 @@
 <template>
   <section class="space-y-6">
-    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100 p-6 text-indigo-900">
+    <ButtonBack />
+    <div ref="headerRef" :class="['relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100 p-6 text-indigo-900 transition-shadow', headerHighlight ? 'ring-2 ring-indigo-300 shadow-lg' : '']">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
           <Layers class="h-5 w-5 text-white" />
@@ -32,14 +33,50 @@
             <div v-for="attr in variantAttributes" :key="attr.id" class="space-y-2">
               <div v-if="attr.isActive">
                 <div class="text-sm font-medium text-gray-800 mb-2">{{ attr.name }}</div>
-                <div class="flex flex-wrap gap-2">
-                  <label v-for="val in (valuesByAttrId[attr.id] || [])" :key="val.id" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/60 cursor-pointer">
+                
+                <!-- Tìm kiếm cho thuộc tính này -->
+                <div class="relative mb-2">
+                  <input 
+                    v-model="searchQueries[attr.id]" 
+                    type="text" 
+                    :placeholder="`Tìm ${attr.name.toLowerCase()}...`"
+                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                  <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                  </svg>
+                </div>
+                
+                <!-- Danh sách giá trị thuộc tính với phân trang -->
+                <div class="space-y-2">
+                  <div v-for="val in paginatedValues(attr.id)" :key="val.id" class="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/60 cursor-pointer">
                     <input class="accent-indigo-600" type="checkbox" :value="val.id" v-model="selected[attr.id]" />
-                    <span class="inline-flex items-center gap-2 text-sm">
-                      <span v-if="attr.type==='color'" class="w-3 h-3 rounded-full border" :style="{ background: val.meta?.hex || val.value?.toLowerCase?.() }" />
-                      {{ val.value }}
+                    <span class="inline-flex items-center gap-2 text-sm flex-1 min-w-0">
+                      <span v-if="attr.type==='color'" class="w-3 h-3 rounded-full border flex-shrink-0" :style="{ background: val.meta?.hex || val.value?.toLowerCase?.() }" />
+                      <span class="truncate">{{ val.value }}</span>
                     </span>
-                  </label>
+                  </div>
+                  
+                  <!-- Phân trang cho thuộc tính này -->
+                  <div v-if="getFilteredValues(attr.id).length > itemsPerPage" class="flex items-center justify-between text-xs text-gray-500 mt-3 pt-2 border-t border-gray-100">
+                    <span>{{ getCurrentPageInfo(attr.id) }}</span>
+                    <div class="flex gap-1">
+                      <button 
+                        @click="prevPage(attr.id)"
+                        :disabled="currentPages[attr.id] <= 1"
+                        class="px-2 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        ←
+                      </button>
+                      <button 
+                        @click="nextPage(attr.id)"
+                        :disabled="currentPages[attr.id] >= getTotalPages(attr.id)"
+                        class="px-2 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        →
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -99,23 +136,32 @@
               <tbody>
                 <tr v-for="(fv, idx) in variantsForm" :key="fv.__k" class="border-t border-gray-100">
                   <td class="p-3">
-                    <input v-model="fv.sku" class="w-40 px-2 py-1 border border-gray-200 rounded-lg" />
+                    <input v-model="fv.sku" class="w-40 px-2 py-1 border border-gray-200 rounded-lg" :class="rowErrors[fv.__k]?.sku ? 'border-red-400' : ''" @input="clearRowError(fv.__k, 'sku')" />
+                    <div v-if="rowErrors[fv.__k]?.sku" class="text-[11px] text-red-600 mt-1">{{ rowErrors[fv.__k].sku }}</div>
                   </td>
                   <td class="p-3">
-                    <input v-model="fv.name" class="w-48 px-2 py-1 border border-gray-200 rounded-lg" />
+                    <input v-model="fv.name" class="w-48 px-2 py-1 border border-gray-200 rounded-lg" :class="rowErrors[fv.__k]?.name ? 'border-red-400' : ''" @input="clearRowError(fv.__k, 'name')" />
+                    <div v-if="rowErrors[fv.__k]?.name" class="text-[11px] text-red-600 mt-1">{{ rowErrors[fv.__k].name }}</div>
                   </td>
                   <td class="p-3">
-                    <input type="number" min="0" v-model.number="fv.price" class="w-28 px-2 py-1 border border-gray-200 rounded-lg" />
+                    <input type="number" min="0" v-model.number="fv.price" class="w-28 px-2 py-1 border border-gray-200 rounded-lg" :class="rowErrors[fv.__k]?.price ? 'border-red-400' : ''" @input="clearRowError(fv.__k, 'price')" />
+                    <div v-if="rowErrors[fv.__k]?.price" class="text-[11px] text-red-600 mt-1">{{ rowErrors[fv.__k].price }}</div>
                   </td>
                   <td class="p-3">
                     <input type="number" min="0" v-model.number="fv.salePrice" class="w-28 px-2 py-1 border border-gray-200 rounded-lg" />
                   </td>
                   <td class="p-3">
                     <div class="flex gap-2">
-                      <input type="number" min="0" step="0.01" v-model.number="fv.width" class="w-20 px-2 py-1 border border-gray-200 rounded-lg" placeholder="Rộng" />
-                      <input type="number" min="0" step="0.01" v-model.number="fv.height" class="w-20 px-2 py-1 border border-gray-200 rounded-lg" placeholder="Cao" />
-                      <input type="number" min="0" step="0.01" v-model.number="fv.length" class="w-20 px-2 py-1 border border-gray-200 rounded-lg" placeholder="Dài" />
-                      <input type="number" min="0" v-model.number="fv.weight" class="w-20 px-2 py-1 border border-gray-200 rounded-lg" placeholder="Nặng" />
+                      <input type="number" min="0" step="0.01" v-model.number="fv.width" class="w-20 px-2 py-1 border border-gray-200 rounded-lg" :class="rowErrors[fv.__k]?.width ? 'border-red-400' : ''" placeholder="Rộng" @input="clearRowError(fv.__k, 'width')" />
+                      <input type="number" min="0" step="0.01" v-model.number="fv.height" class="w-20 px-2 py-1 border border-gray-200 rounded-lg" :class="rowErrors[fv.__k]?.height ? 'border-red-400' : ''" placeholder="Cao" @input="clearRowError(fv.__k, 'height')" />
+                      <input type="number" min="0" step="0.01" v-model.number="fv.length" class="w-20 px-2 py-1 border border-gray-200 rounded-lg" :class="rowErrors[fv.__k]?.length ? 'border-red-400' : ''" placeholder="Dài" @input="clearRowError(fv.__k, 'length')" />
+                      <input type="number" min="0" v-model.number="fv.weight" class="w-20 px-2 py-1 border border-gray-200 rounded-lg" :class="rowErrors[fv.__k]?.weight ? 'border-red-400' : ''" placeholder="Nặng" @input="clearRowError(fv.__k, 'weight')" />
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-1">
+                      <span v-if="rowErrors[fv.__k]?.width" class="text-[11px] text-red-600">{{ rowErrors[fv.__k].width }}</span>
+                      <span v-if="rowErrors[fv.__k]?.height" class="text-[11px] text-red-600">{{ rowErrors[fv.__k].height }}</span>
+                      <span v-if="rowErrors[fv.__k]?.length" class="text-[11px] text-red-600">{{ rowErrors[fv.__k].length }}</span>
+                      <span v-if="rowErrors[fv.__k]?.weight" class="text-[11px] text-red-600">{{ rowErrors[fv.__k].weight }}</span>
                     </div>
                   </td>
                   <td class="p-3">
@@ -165,7 +211,7 @@
               <DollarSign class="h-4 w-4" />
               Áp giá mặc định
             </button>
-            <button @click="saveToLocal" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700">
+            <button @click="saveToLocal" class="inline-flex font-bold items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700">
               <Save class="h-4 w-4" />
               Lưu (local)
             </button>
@@ -178,14 +224,18 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Layers, Settings2, Wrench, Sparkles, Trash2, Save, ArrowLeft, DollarSign } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import { useProductStore } from '@/admin/stores/product.store'
 import { useAttributeStore } from '@/admin/stores/attribute.store'
 import { generateVariantsFromMap } from '@/admin/services/variant.util'
+import ButtonBack from '@/admin/components/ui/ButtonBack.vue'
+import { generateSku } from '@/admin/services/sku'
+import { message } from 'ant-design-vue'
 
 const route = useRoute()
+const router = useRouter()
 const id = route.params.id
 
 const productStore = useProductStore()
@@ -202,9 +252,111 @@ const selected = reactive({})
 const skuPrefix = ref('SKU-')
 const defaultPrice = ref(0)
 
+// Thêm state cho phân trang và tìm kiếm
+const searchQueries = reactive({})
+const currentPages = reactive({})
+const itemsPerPage = 8 // Hiển thị 8 items mỗi trang
+
 const variantsForm = ref([])
 
+// Lỗi từng dòng theo key __k
+const rowErrors = ref({})
+const clearRowError = (key, field) => {
+  if (!rowErrors.value[key]) return
+  if (field) delete rowErrors.value[key][field]
+  if (rowErrors.value[key] && Object.keys(rowErrors.value[key]).length === 0) delete rowErrors.value[key]
+}
+
+const validateRow = (fv) => {
+  const errs = {}
+  if (!String(fv.sku || '').trim()) errs.sku = 'SKU là bắt buộc'
+  if (!String(fv.name || '').trim()) errs.name = 'Tên biến thể là bắt buộc'
+  if (fv.price == null || Number.isNaN(Number(fv.price))) errs.price = 'Giá không hợp lệ'
+  if (Number(fv.price) < 0) errs.price = 'Giá không thể âm'
+  // Validate kích thước/khối lượng nếu có nhập thì phải >= 0
+  const numericNonNegative = (n) => n == null || n === '' || (!Number.isNaN(Number(n)) && Number(n) >= 0)
+  if (!numericNonNegative(fv.weight)) errs.weight = 'Khối lượng không hợp lệ'
+  if (!numericNonNegative(fv.width)) errs.width = 'Rộng không hợp lệ'
+  if (!numericNonNegative(fv.height)) errs.height = 'Cao không hợp lệ'
+  if (!numericNonNegative(fv.length)) errs.length = 'Dài không hợp lệ'
+  return errs
+}
+
+const validateAll = () => {
+  const allErrors = {}
+  for (const fv of variantsForm.value) {
+    const errs = validateRow(fv)
+    if (Object.keys(errs).length) allErrors[fv.__k] = errs
+  }
+  rowErrors.value = allErrors
+  return Object.keys(allErrors).length === 0
+}
+
+// Logic phân trang và tìm kiếm
+const getFilteredValues = (attrId) => {
+  const query = searchQueries[attrId] || ''
+  const values = valuesByAttrId.value[attrId] || []
+  
+  if (!query.trim()) return values
+  
+  return values.filter(val => 
+    val.value.toLowerCase().includes(query.toLowerCase())
+  )
+}
+
+const paginatedValues = (attrId) => {
+  const filtered = getFilteredValues(attrId)
+  const start = ((currentPages[attrId] || 1) - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  
+  return filtered.slice(start, end)
+}
+
+const getTotalPages = (attrId) => {
+  const filtered = getFilteredValues(attrId)
+  return Math.ceil(filtered.length / itemsPerPage)
+}
+
+const getCurrentPageInfo = (attrId) => {
+  const current = currentPages[attrId] || 1
+  const total = getTotalPages(attrId)
+  const filtered = getFilteredValues(attrId)
+  
+  if (total <= 1) return `${filtered.length} ${filtered.length === 1 ? 'lựa chọn' : 'lựa chọn'}`
+  
+  const start = ((current - 1) * itemsPerPage) + 1
+  const end = Math.min(current * itemsPerPage, filtered.length)
+  
+  return `${start}-${end} / ${filtered.length}`
+}
+
+const prevPage = (attrId) => {
+  if (currentPages[attrId] > 1) {
+    currentPages[attrId]--
+  }
+}
+
+const nextPage = (attrId) => {
+  const total = getTotalPages(attrId)
+  if (currentPages[attrId] < total) {
+    currentPages[attrId]++
+  }
+}
+
+// Reset trang khi tìm kiếm
+watch(searchQueries, () => {
+  Object.keys(currentPages).forEach(attrId => {
+    currentPages[attrId] = 1
+  })
+})
+
 const attrLabel = (attrId) => attributes.value.find(a => String(a.id) === String(attrId))?.name || attrId
+const attrCodeOrName = (attrId) => {
+  const a = attributes.value.find(x => String(x.id) === String(attrId))
+  if (!a) return String(attrId)
+  const key = a.code || a.name || String(attrId)
+  return String(key).toLowerCase()
+}
 const valueLabel = (valId) => {
   const lists = valuesByAttrId.value
   for (const [k, arr] of Object.entries(lists)) {
@@ -213,35 +365,71 @@ const valueLabel = (valId) => {
   }
   return valId
 }
+// build pretty attribute combination for API: { color: 'black', size: 'l' }
+const buildPrettyCombination = (combo) => {
+  const out = {}
+  for (const [attrId, valId] of Object.entries(combo || {})) {
+    const key = attrCodeOrName(attrId)
+    const val = valueLabel(valId)
+    out[key] = val
+  }
+  return out
+}
+
+const headerRef = ref(null)
+const headerHighlight = ref(false)
 
 const generate = () => {
-  const generated = generateVariantsFromMap(id, selected)
-  variantsForm.value = generated.map((g, index) => ({
-    __k: `${g.sku}-${index}-${Date.now()}`,
-    productId: id,
-    sku: `${skuPrefix.value}${index + 1}`,
-    name: '',
-    price: Number(defaultPrice.value || 0),
-    salePrice: null,
-    weight: null,
-    width: null,
-    height: null,
-    length: null,
-    isActive: true,
-    attributeCombination: g.options || {},
-    inventory: {
-      quantity: 0,
-      reserved_quantity: 0,
-      available_quantity: 0,
-      low_stock_threshold: 0,
-      is_in_stock: true,
-      is_backorder_allowed: false,
-    },
-  }))
+  try
+  {
+     const generated = generateVariantsFromMap(id, selected)
+    const base = generateSku(product.value?.name || 'PRODUCT')
+    variantsForm.value = generated.map((g, index) => ({
+      __k: `${g.sku}-${index}-${Date.now()}`,
+      productId: id,
+      sku: `${skuPrefix.value || ''}${base}-V${index + 1}`,
+      name: '',
+      price: Number(defaultPrice.value || 0),
+      salePrice: null,
+      weight: null,
+      width: null,
+      height: null,
+      length: null,
+      isActive: true,
+      attributeCombination: g.options || {},
+      inventory: {
+        quantity: 0,
+        reserved_quantity: 0,
+        available_quantity: 0,
+        low_stock_threshold: 0,
+        is_in_stock: true,
+        is_backorder_allowed: false,
+      },
+    }))
+    rowErrors.value = {}
+    message.success('Đã tạo biến thể')
+    // Focus lên đầu trang và highlight header
+    try {
+      headerRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      headerHighlight.value = true
+      setTimeout(() => { headerHighlight.value = false }, 900)
+    } catch {}
+  }
+  catch (error) {
+    console.error('Error generating variants:', error)
+    message.error('Lỗi khi tạo biến thể')
+  }
 }
 
 const removeRow = (idx) => {
-  variantsForm.value.splice(idx, 1)
+  try {
+    variantsForm.value.splice(idx, 1)
+    message.success('Đã xóa biến thể')
+  }
+  catch (error) {
+    console.error('Error removing row:', error)
+    message.error('Lỗi khi xóa biến thể')
+  }
 }
 
 const applyBulkPrice = () => {
@@ -249,30 +437,36 @@ const applyBulkPrice = () => {
 }
 
 const saveToLocal = () => {
-  // Lưu local: đẩy vào store. Ở đây không gọi API theo yêu cầu chỉ frontend
-  const created = []
-  for (const fv of variantsForm.value) {
-    const v = productStore.upsertVariant({
-      id: undefined,
-      productId: fv.productId,
-      sku: fv.sku,
-      name: fv.name,
-      price: fv.price,
-      salePrice: fv.salePrice,
-      weight: fv.weight,
-      width: fv.width,
-      height: fv.height,
-      length: fv.length,
-      isActive: fv.isActive,
-      attributeCombination: fv.attributeCombination,
-    })
-    created.push(v)
+  // Validate trước khi lưu
+  if (!variantsForm.value.length) {
+    message.error('Chưa có biến thể nào để lưu')
+    return
   }
+  if (!validateAll()) {
+    message.error('Vui lòng điền đầy đủ các trường bắt buộc cho biến thể')
+    return
+  }
+  // Tạo danh sách biến thể cục bộ (không gọi API)
+  const created = variantsForm.value.map(fv => ({
+    id: undefined,
+    productId: fv.productId,
+    sku: fv.sku,
+    name: fv.name,
+    price: fv.price,
+    salePrice: fv.salePrice,
+    weight: fv.weight,
+    width: fv.width,
+    height: fv.height,
+    length: fv.length,
+    isActive: fv.isActive,
+    attributeCombination: buildPrettyCombination(fv.attributeCombination),
+  }))
+
   // Đồng bộ ngay product.variants để bảng ở ProductIndex hiển thị tức thì
   if (product.value) {
     const existing = Array.isArray(product.value.variants) ? product.value.variants : []
     const normalized = created.map(v => ({
-      id: v.id,
+      id: v.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       productId: v.productId,
       sku: v.sku,
       name: v.name,
@@ -286,8 +480,16 @@ const saveToLocal = () => {
       attributeCombination: v.attributeCombination,
       deletedAt: null,
     }))
-    productStore.updateProduct(product.value.id, { variants: existing.concat(normalized) })
+    if (typeof productStore.updateProductLocal === 'function') {
+      productStore.updateProductLocal(product.value.id, { variants: existing.concat(normalized) })
+    } else {
+      // Fallback: cập nhật trực tiếp đối tượng đang hiển thị
+      product.value.variants = existing.concat(normalized)
+    }
   }
+  message.success('Đã lưu biến thể (local)')
+  // Điều hướng về danh sách sản phẩm
+  router.push({ name: 'admin.products' })
 }
 
 onMounted(async () => {
@@ -310,6 +512,8 @@ onMounted(async () => {
 watch(variantAttributes, (list) => {
   list.forEach(attr => {
     if (!Array.isArray(selected[attr.id])) selected[attr.id] = []
+    if (!searchQueries[attr.id]) searchQueries[attr.id] = ''
+    if (!currentPages[attr.id]) currentPages[attr.id] = 1
   })
 }, { immediate: true })
 </script>

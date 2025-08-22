@@ -1,5 +1,5 @@
 <template>
-  <header class="fixed top-0 right-0 left-0 md:left-64 z-40 h-14 border-b border-black/10 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70 shadow-sm">
+  <header class="fixed top-0 right-0 left-0 md:left-64 z-40 h-[69px] border-b border-black/10 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70 shadow-sm">
     <div class="h-full flex items-center justify-between px-4">
       <div class="flex items-center gap-2">
         <!-- Mobile Menu Toggle -->
@@ -12,7 +12,7 @@
         </button>
         
         <!-- Desktop Title -->
-        <span class="font-medium tracking-tight text-gray-900 hidden md:block">Quản trị</span>
+        <span class="font-medium tracking-tight text-gray-900 hidden md:block">Xin chào bạn, hiện tại là {{ getCurrentDateTime() }}</span>
         
         <!-- Mobile Title -->
         <span class="font-medium tracking-tight text-gray-900 md:hidden">Admin Panel</span>
@@ -55,13 +55,22 @@
 
 <script setup>
 import { db } from '@/admin/services/db'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { Menu, X, RotateCcw, User } from 'lucide-vue-next'
 import { useUiStore } from '@/admin/stores/ui.store'
 
 const ui = useUiStore()
 const isSidebarOpen = computed(() => ui.isSidebarOpen)
 const toggleSidebar = () => ui.toggleSidebar()
+
+// Hàm lấy ngày giờ hiện tại
+const getCurrentDateTime = () => {
+  const now = new Date()
+  const day = String(now.getDate()).padStart(2, '0')
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const year = now.getFullYear()
+  return `${day}/${month}/${year}`
+}
 
 const resetDemo = () => {
   db.reset(['admin.attributes','admin.attributeValues','admin.categories','admin.products','admin.variants','admin.productImages','admin.inventory'])

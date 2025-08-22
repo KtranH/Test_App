@@ -26,7 +26,7 @@
             <td class="p-4">
               <div class="flex items-center gap-2">
                 <Folder class="h-4 w-4 text-gray-400" />
-                <span class="text-gray-700">{{ categoryName(p.categoryId) }}</span>
+                <span class="text-gray-700">{{ categoryName(p.category_id) }}</span>
               </div>
             </td>
             <td class="p-4">
