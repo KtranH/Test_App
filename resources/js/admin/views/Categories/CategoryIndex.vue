@@ -44,25 +44,76 @@
 
     <!-- Categories Grid -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-aos="fade-up" data-aos-duration="1200">
-      <div v-for="cat in categories" :key="cat.id" class="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
-        <div class="absolute inset-0 bg-gradient-to-r from-emerald-50 to-teal-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div 
+        v-for="cat in categories" 
+        :key="cat.id" 
+        :class="[
+          'group relative overflow-hidden rounded-2xl p-6 shadow-lg border transition-all duration-300 hover:scale-105',
+          cat.isActive 
+            ? 'bg-white border-gray-100 hover:shadow-xl' 
+            : 'bg-gray-100 border-gray-200 hover:shadow-md'
+        ]"
+      >
+        <div 
+          :class="[
+            'absolute inset-0 transition-opacity duration-300',
+            cat.isActive 
+              ? 'bg-gradient-to-r from-emerald-50 to-teal-50 opacity-0 group-hover:opacity-100' 
+              : 'bg-gray-200 opacity-100'
+          ]"
+        ></div>
         <div class="relative z-10">
           <div class="flex items-start justify-between mb-4">
-            <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center">
-              <Folder class="h-6 w-6 text-emerald-600" />
+            <div 
+              :class="[
+                'h-12 w-12 rounded-xl flex items-center justify-center',
+                cat.isActive 
+                  ? 'bg-gradient-to-br from-emerald-100 to-emerald-200' 
+                  : 'bg-gray-300'
+              ]"
+            >
+              <Folder 
+                :class="[
+                  'h-6 w-6',
+                  cat.isActive ? 'text-emerald-600' : 'text-gray-500'
+                ]" 
+              />
             </div>
             <div class="flex items-center gap-2">
               <button @click="edit(cat)" class="group/btn p-2 rounded-lg hover:bg-emerald-100 transition-colors duration-200" title="Chỉnh sửa">
                 <Edit class="h-4 w-4 text-emerald-600 group-hover/btn:scale-110 transition-transform duration-200" />
               </button>
-              <button @click="remove(cat.id)" class="group/btn p-2 rounded-lg hover:bg-red-100 transition-colors duration-200" title="Xóa">
-                <Trash2 class="h-4 w-4 text-red-600 group-hover/btn:scale-110 transition-transform duration-200" />
+              <button 
+                @click="confirmToggle(cat)" 
+                :class="[
+                  'group/btn p-2 rounded-lg transition-colors duration-200',
+                  cat.isActive 
+                    ? 'hover:bg-red-100' 
+                    : 'hover:bg-emerald-100'
+                ]" 
+                :title="cat.isActive ? 'Tắt danh mục' : 'Bật danh mục'"
+              >
+                <Power 
+                  v-if="cat.isActive" 
+                  class="h-4 w-4 text-red-600 group-hover/btn:scale-110 transition-transform duration-200" 
+                />
+                <Power 
+                  v-else 
+                  class="h-4 w-4 text-emerald-600 group-hover/btn:scale-110 transition-transform duration-200" 
+                />
               </button>
             </div>
           </div>
           
           <div class="mb-4">
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ cat.name }}</h3>
+            <h3 
+              :class="[
+                'text-lg font-semibold mb-2',
+                cat.isActive ? 'text-gray-900' : 'text-gray-600'
+              ]"
+            >
+              {{ cat.name }}
+            </h3>
             <div class="space-y-2">
               <div class="flex items-center gap-2 text-sm text-gray-600">
                 <Hash class="h-4 w-4" />
@@ -70,8 +121,15 @@
               </div>
               <div class="flex items-center gap-2">
                 <CheckCheck v-if="cat.isActive" class="h-4 w-4 text-emerald-600" />
-                <X v-else class="h-4 w-4 text-gray-400" />
-                <span class="text-sm text-gray-600">{{ cat.isActive ? 'Đang hiển thị' : 'Đã ẩn' }}</span>
+                <X v-else class="h-4 w-4 text-gray-500" />
+                <span 
+                  :class="[
+                    'text-sm',
+                    cat.isActive ? 'text-emerald-600' : 'text-gray-500'
+                  ]"
+                >
+                  {{ cat.isActive ? 'Đang hiển thị' : 'Đã tắt' }}
+                </span>
               </div>
             </div>
           </div>
@@ -121,21 +179,27 @@
         </div>
       </form>
     </dialog>
+    <ConfirmDialog ref="confirmRef" @confirm="toggleStatus" />
   </section>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useCategoryStore } from '@/admin/stores/category.store'
 import EmptyState from '@/admin/components/ui/EmptyState.vue'
 import { 
-  FolderOpen, Folder, FolderPlus, Edit, Trash2, Hash, CheckCheck, X, LoaderCircle
+  FolderOpen, Folder, FolderPlus, Edit, Power, Hash, CheckCheck, X, LoaderCircle
 } from 'lucide-vue-next'
+import { message } from 'ant-design-vue'
+import ConfirmDialog from '@/admin/components/ui/ConfirmDialog.vue'
 
 const store = useCategoryStore()
-const { categories, isLoading } = storeToRefs(store)
-const { createCategory, updateCategory, removeCategory, ensureInitialized, fetchFirstPage } = store
+const { isLoading } = storeToRefs(store)
+const { createCategory, updateCategory, ensureInitialized, fetchFirstPage } = store
+
+// Sử dụng store trực tiếp để đảm bảo reactive
+const categories = computed(() => store.categories)
 
 const dialogRef = ref(null)
 const form = ref({ id: null, name: '', slug: '', parentId: null, isActive: true })
@@ -148,12 +212,59 @@ const openCreate = () => { form.value = { id: null, name: '', slug: '', parentId
 const edit = (cat) => { form.value = { ...cat }; dialogRef.value?.showModal() }
 const closeDialog = () => dialogRef.value?.close()
 const save = () => {
-  if (!form.value.name || !form.value.slug) return
-  if (form.value.id) updateCategory(form.value.id, { ...form.value })
-  else createCategory({ ...form.value })
-  closeDialog()
+  try {
+    if (!form.value.name || !form.value.slug) return
+    if (form.value.id) {
+      // Map camelCase sang snake_case cho backend
+      const backendPayload = {
+        name: form.value.name,
+        slug: form.value.slug,
+        parent_id: form.value.parentId,
+        is_active: form.value.isActive
+      }
+      updateCategory(form.value.id, backendPayload)
+    } else {
+      createCategory({ ...form.value })
+    }
+    closeDialog()
+    message.success('Thao tác danh mục thành công!')
+  } catch (error) {
+    console.error(error)
+    message.error('Thao tác danh mục thất bại!')
+  }
 }
-const remove = (id) => removeCategory(id)
+
+const confirmRef = ref(null)
+const confirmToggle = async (cat) => {
+  if (cat.isActive) {
+    const ok = await confirmRef.value?.open?.({
+      title: 'Tắt danh mục?',
+      message: `Danh mục "${cat.name}" sẽ bị tắt và không thể chọn khi tạo sản phẩm.\nBạn vẫn muốn tiếp tục?`,
+      confirmText: 'Tắt',
+      cancelText: 'Hủy',
+      confirmType: 'danger',
+    })
+    if (!ok) return
+  }
+  await toggleStatus(cat)
+}
+
+const toggleStatus = async (cat) => {
+  try {
+    const newStatus = !cat.isActive    
+    // Gọi API để cập nhật backend
+    await updateCategory(cat.id, { is_active: newStatus })
+    
+    // Đợi DOM được cập nhật
+    await nextTick()
+  
+    message.success(`Đã ${newStatus ? 'bật' : 'tắt'} danh mục "${cat.name}"`)
+  } catch (error) {
+    console.error(error)
+    message.error('Thay đổi trạng thái danh mục thất bại!')
+  }
+}
+
 const refresh = () => {
   store.fetchFirstPage()
 }

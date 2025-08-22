@@ -54,6 +54,7 @@ export const useProductStore = defineStore('admin.products', () => {
         saleEndDate: p.sale_end_date ?? null,
         isFeatured: !!p.is_featured,
         meta: p.meta_data ?? null,
+        images: Array.isArray(p.images) ? p.images : [],
         sortOrder: p.sort_order ?? 0,
         variants: Array.isArray(p.variants) ? p.variants.map(v => ({
           id: v.id,

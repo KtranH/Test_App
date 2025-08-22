@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { db, uid } from '@/admin/services/db'
 import { AttributesApi } from '@/admin/api/attributes'
+import { AttributesValuesApi } from '@/admin/api/attributes_values'
 
 const ATTRIBUTES_KEY = 'attributes'
 const ATTRIBUTE_VALUES_KEY = 'attributeValues'
@@ -24,32 +25,158 @@ export const useAttributeStore = defineStore('admin.attributes', () => {
     return map
   })
 
-  const createAttribute = (payload) => {
-    const entity = { id: uid(), name: payload.name, code: payload.code, type: payload.type || 'select', isVariantDefining: !!payload.isVariantDefining }
+  const createAttribute = async (payload) => {
+    // Map frontend fields sang backend fields
+    const backendPayload = {
+      name: payload.name,
+      code: payload.code,
+      type: payload.type || 'select',
+      is_filterable: payload.isVariantDefining ?? payload.is_active ?? false,
+      is_active: payload.is_active ?? true,
+      sort_order: payload.sortOrder ?? 0,
+    }
+    
+    // Gọi API tạo thuộc tính
+    const respone = await AttributesApi.createAttribute(backendPayload)
+    if (respone?.error) return
+    const data = respone?.data?.data ?? respone?.data ?? {}
+    const entity = {
+      id: data.id ?? uid(),
+      name: data.name ?? payload.name,
+      code: data.code ?? payload.code,
+      type: (data.type ?? payload.type) || 'select',
+      isVariantDefining: !!(data.is_filterable ?? data.is_variant_defining ?? payload.isVariantDefining ?? payload.is_active),
+      isActive: data.is_active != null ? !!data.is_active : true,
+      sortOrder: data.sort_order ?? 0,
+    }
     attributes.value.push(entity)
     db.setCollection(ATTRIBUTES_KEY, attributes.value)
     return entity
   }
 
-  const updateAttribute = (id, patch) => {
+  const updateAttribute = async (id, patch) => {
+    console.log('Store updateAttribute được gọi với:', { id, patch })
+    
+    // Map frontend fields sang backend fields
+    const backendPatch = {}
+    if (patch.hasOwnProperty('is_active')) {
+      backendPatch.is_active = patch.is_active
+    }
+    if (patch.hasOwnProperty('isVariantDefining')) {
+      backendPatch.is_filterable = patch.isVariantDefining
+    }
+    if (patch.hasOwnProperty('name')) {
+      backendPatch.name = patch.name
+    }
+    if (patch.hasOwnProperty('code')) {
+      backendPatch.code = patch.code
+    }
+    if (patch.hasOwnProperty('type')) {
+      backendPatch.type = patch.type
+    }
+    if (patch.hasOwnProperty('sortOrder')) {
+      backendPatch.sort_order = patch.sort_order
+    }
+    
+    console.log('Backend patch:', backendPatch)
+    
+    const respone = await AttributesApi.updateAttribute(id, backendPatch)
+    console.log('API response:', respone)
+    
+    if (respone?.error) return
     const idx = attributes.value.findIndex(a => a.id === id)
     if (idx < 0) return
-    attributes.value[idx] = { ...attributes.value[idx], ...patch }
+    
+    // Map backend response về frontend
+    const normalized = {}
+    if (Object.prototype.hasOwnProperty.call(respone?.data?.data || {}, 'is_active')) {
+      normalized.isActive = !!respone.data.data.is_active
+    }
+    if (Object.prototype.hasOwnProperty.call(respone?.data?.data || {}, 'is_filterable')) {
+      normalized.isVariantDefining = !!respone.data.data.is_filterable
+    }
+    if (Object.prototype.hasOwnProperty.call(respone?.data?.data || {}, 'name')) {
+      normalized.name = respone.data.data.name
+    }
+    if (Object.prototype.hasOwnProperty.call(respone?.data?.data || {}, 'code')) {
+      normalized.code = respone.data.data.code
+    }
+    if (Object.prototype.hasOwnProperty.call(respone?.data?.data || {}, 'type')) {
+      normalized.type = respone.data.data.type
+    }
+    if (Object.prototype.hasOwnProperty.call(respone?.data?.data || {}, 'sort_order')) {
+      normalized.sortOrder = respone.data.data.sort_order
+    }
+    
+    console.log('Normalized patch:', normalized)
+    
+    // Cập nhật local state
+    attributes.value[idx] = { ...attributes.value[idx], ...normalized }
     db.setCollection(ATTRIBUTES_KEY, attributes.value)
+    
+    console.log('Updated attribute:', attributes.value[idx])
+    
+    return respone
   }
 
-  const removeAttribute = (id) => {
+  const removeAttribute = async (id) => {
+    const respone = await AttributesApi.deleteAttribute(id)
+    if (respone.error) return
     attributes.value = attributes.value.filter(a => a.id !== id)
     values.value = values.value.filter(v => v.attributeId !== id)
     db.setCollection(ATTRIBUTES_KEY, attributes.value)
     db.setCollection(ATTRIBUTE_VALUES_KEY, values.value)
   }
 
-  const addValue = (attributeId, value) => {
-    const v = { id: uid(), attributeId, value: value.value, meta: value.meta || {} }
-    values.value.push(v)
-    db.setCollection(ATTRIBUTE_VALUES_KEY, values.value)
-    return v
+  const addValue = async (attributeId, value) => {
+    console.log('Store addValue được gọi với:', { attributeId, value })
+    
+    try {
+      // Gọi API để tạo attribute value
+      const response = await AttributesValuesApi.createAttributeValues({
+        attribute_id: attributeId,
+        value: value.value,
+        code: value.value?.toLowerCase()?.replace(/\s+/g, '_'),
+        color_code: value.meta?.hex || null,
+        image: value.meta?.image || null,
+        sort_order: 0,
+        is_active: true
+      })
+      
+      console.log('API response:', response)
+      
+      if (response?.error) {
+        console.error('Failed to create attribute value:', response.error)
+        return null
+      }
+      
+      const data = response?.data?.data ?? response?.data ?? {}
+      const newValue = {
+        id: data.id ?? uid(),
+        attributeId: attributeId,
+        value: value.value,
+        meta: {
+          hex: value.meta?.hex || null,
+          code: data.code || null,
+          image: data.image || null,
+        },
+        sortOrder: data.sort_order ?? 0,
+        isActive: data.is_active != null ? !!data.is_active : true,
+      }
+      
+      console.log('New value object:', newValue)
+      
+      // Cập nhật local state
+      values.value.push(newValue)
+      db.setCollection(ATTRIBUTE_VALUES_KEY, values.value)
+      
+      console.log('Updated values array:', values.value)
+      
+      return newValue
+    } catch (error) {
+      console.error('Error creating attribute value:', error)
+      return null
+    }
   }
 
   const updateValue = (id, patch) => {
@@ -59,9 +186,25 @@ export const useAttributeStore = defineStore('admin.attributes', () => {
     db.setCollection(ATTRIBUTE_VALUES_KEY, values.value)
   }
 
-  const removeValue = (id) => {
-    values.value = values.value.filter(v => v.id !== id)
-    db.setCollection(ATTRIBUTE_VALUES_KEY, values.value)
+  const removeValue = async (id) => {
+    try {
+      // Gọi API để xóa attribute value
+      const response = await AttributesValuesApi.deleteAttributeValues(id)
+      
+      if (response?.error) {
+        console.error('Failed to delete attribute value:', response.error)
+        return false
+      }
+      
+      // Cập nhật local state
+      values.value = values.value.filter(v => v.id !== id)
+      db.setCollection(ATTRIBUTE_VALUES_KEY, values.value)
+      
+      return true
+    } catch (error) {
+      console.error('Error deleting attribute value:', error)
+      return false
+    }
   }
 
   const importDefaultsIfEmpty = () => {
@@ -98,7 +241,7 @@ export const useAttributeStore = defineStore('admin.attributes', () => {
       total.value = Number(paging?.total ?? attributes.value.length)
 
       // 2) Với mỗi attribute, gọi API chi tiết để lấy values theo ID
-      const detailPromises = attributes.value.map(a => AttributesApi.getAttributesValues(a.id).catch(() => null))
+      const detailPromises = attributes.value.map(a => AttributesValuesApi.getAttributeValuesByAttributeId(a.id).catch(() => null))
       const detailResults = await Promise.all(detailPromises)
 
       const collected = []
@@ -106,27 +249,23 @@ export const useAttributeStore = defineStore('admin.attributes', () => {
         const a = attributes.value[idx]
         const res = detailResults[idx]
         const dataNode = res?.data?.data
-        // API hiện tại trả về dạng: { data: [ { id, name, values: [...] } ] }
-        // Nên cần lấy phần tử trong mảng (ưu tiên phần tử khớp id)
-        const attrNode = Array.isArray(dataNode)
-          ? (dataNode.find(n => n?.id === a.id) ?? dataNode[0])
-          : dataNode
-        const rawValues = Array.isArray(attrNode?.values) ? attrNode.values : []
+        
+        // API trả về dạng: { data: [ { id, attribute_id, value, color_code, ... } ] }
+        const rawValues = Array.isArray(dataNode) ? dataNode : []
 
         for (const v of rawValues) {
-          const valueText = typeof v === 'string' ? v : (v?.value ?? '')
-          if (!valueText) continue
+          if (!v?.value) continue
           collected.push({
-            id: v?.id ?? `${a.id}:${valueText}`,
+            id: v.id ?? `${a.id}:${v.value}`,
             attributeId: a.id,
-            value: valueText,
+            value: v.value,
             meta: {
-              hex: v?.color_code || null,
-              code: v?.code || null,
-              image: v?.image || null,
+              hex: v.color_code || null,
+              code: v.code || null,
+              image: v.image || null,
             },
-            sortOrder: v?.sort_order ?? 0,
-            isActive: v?.is_active != null ? !!v.is_active : true,
+            sortOrder: v.sort_order ?? 0,
+            isActive: v.is_active != null ? !!v.is_active : true,
           })
         }
       }
@@ -162,27 +301,28 @@ export const useAttributeStore = defineStore('admin.attributes', () => {
       total.value = Number(paging?.total ?? total.value)
 
       // fetch values cho trang mới
-      const detailPromises = nextAttrs.map(a => AttributesApi.getAttributesValues(a.id).catch(() => null))
+      const detailPromises = nextAttrs.map(a => AttributesValuesApi.getAttributeValuesByAttributeId(a.id).catch(() => null))
       const detailResults = await Promise.all(detailPromises)
       const collected = [...values.value]
       for (let idx = 0; idx < nextAttrs.length; idx++) {
         const a = nextAttrs[idx]
         const res = detailResults[idx]
         const dataNode = res?.data?.data
-        const attrNode = Array.isArray(dataNode)
-          ? (dataNode.find(n => n?.id === a.id) ?? dataNode[0])
-          : dataNode
-        const rawValues = Array.isArray(attrNode?.values) ? attrNode.values : []
+        const rawValues = Array.isArray(dataNode) ? dataNode : []
+        
         for (const v of rawValues) {
-          const valueText = typeof v === 'string' ? v : (v?.value ?? '')
-          if (!valueText) continue
+          if (!v?.value) continue
           collected.push({
-            id: v?.id ?? `${a.id}:${valueText}`,
+            id: v.id ?? `${a.id}:${v.value}`,
             attributeId: a.id,
-            value: valueText,
-            meta: { hex: v?.color_code || null, code: v?.code || null, image: v?.image || null },
-            sortOrder: v?.sort_order ?? 0,
-            isActive: v?.is_active != null ? !!v.is_active : true,
+            value: v.value,
+            meta: { 
+              hex: v.color_code || null, 
+              code: v.code || null, 
+              image: v.image || null 
+            },
+            sortOrder: v.sort_order ?? 0,
+            isActive: v.is_active != null ? !!v.is_active : true,
           })
         }
       }
@@ -200,6 +340,10 @@ export const useAttributeStore = defineStore('admin.attributes', () => {
       return
     }
     await fetchFirstPage()
+  }
+
+  const disableAttribute = async (id, isActive) => {
+    await updateAttribute(id, { is_active: isActive })
   }
 
   return {
@@ -220,6 +364,7 @@ export const useAttributeStore = defineStore('admin.attributes', () => {
     updateValue,
     removeValue,
     importDefaultsIfEmpty,
+    disableAttribute,
   }
 })
 

@@ -78,9 +78,9 @@ class Products extends ApiModel
         'is_active',
         'sort_order',
         'meta_data',
+        'variants{id,sku,name,price,sale_price,weight,width,height,length,is_active,attribute_combination,deleted_at}',
+        'images{id,product_variant_id,image_path,alt_text,title,sort_order,is_primary,is_active}',
     ];
-
-    protected $with = ['variants', 'category'];
 
     protected $primaryKey = 'id';
 

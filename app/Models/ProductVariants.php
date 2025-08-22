@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Inventory as InventoryModel;
 
 class ProductVariants extends ApiModel
 {
@@ -67,6 +68,7 @@ class ProductVariants extends ApiModel
         'length',
         'is_active',
         'attribute_combination',
+        'inventory{quantity,low_stock_threshold,is_backorder_allowed}',
     ];
 
     protected $primaryKey = 'id';
@@ -83,7 +85,7 @@ class ProductVariants extends ApiModel
 
     public function inventory(): HasOne
     {
-        return $this->hasOne(Inventory::class, 'product_variant_id');
+        return $this->hasOne(InventoryModel::class, 'product_variant_id');
     }
 
     public function attributes(): BelongsToMany
@@ -98,5 +100,23 @@ class ProductVariants extends ApiModel
         return $this->belongsToMany(AttributesValues::class, 'product_variant_attributes', 'product_variant_id', 'attribute_value_id')
             ->withPivot('attribute_id')
             ->withTimestamps();
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (ProductVariants $variant): void {
+            if (!$variant->inventory()->exists()) {
+                InventoryModel::create([
+                    'product_variant_id' => $variant->id,
+                    'quantity' => 0,
+                    'reserved_quantity' => 0,
+                    'available_quantity' => 0,
+                    'low_stock_threshold' => 0,
+                    'is_in_stock' => false,
+                    'is_backorder_allowed' => false,
+                    'last_restocked_at' => null,
+                ]);
+            }
+        });
     }
 }

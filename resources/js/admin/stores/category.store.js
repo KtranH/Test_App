@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { db, uid } from '@/admin/services/db'
 import { CategoriesApi } from '@/admin/api/categories'
 
@@ -12,21 +12,94 @@ export const useCategoryStore = defineStore('admin.categories', () => {
   const pagingNext = ref(null)
   const total = ref(0)
 
-  const createCategory = (payload) => {
-    const entity = { id: uid(), name: payload.name, slug: payload.slug, parentId: payload.parentId || null, isActive: payload.isActive ?? true }
+  const createCategory = async (payload) => {
+    // Map camelCase từ frontend sang snake_case cho backend
+    const backendPayload = {
+      name: payload.name,
+      slug: payload.slug,
+      parent_id: payload.parentId || null,
+      is_active: payload.isActive ?? true
+    }
+    
+    const respone = await CategoriesApi.createCategory(backendPayload)
+    if (respone.error) return
+    
+    // Cập nhật local với camelCase
+    const entity = { 
+      id: uid(), 
+      name: payload.name, 
+      slug: payload.slug, 
+      parentId: payload.parentId || null, 
+      isActive: payload.isActive ?? true 
+    }
     categories.value.push(entity)
     db.setCollection(CATEGORIES_KEY, categories.value)
     return entity
   }
 
-  const updateCategory = (id, patch) => {
+  const updateCategory = async (id, patch) => {
+    console.log('Store updateCategory được gọi với:', { id, patch })
+    
+    const respone = await CategoriesApi.updateCategory(id, patch)
+    if (respone.error) return
     const idx = categories.value.findIndex(c => c.id === id)
     if (idx < 0) return
-    categories.value[idx] = { ...categories.value[idx], ...patch }
+    
+    console.log('Tìm thấy category tại index:', idx, 'với data:', categories.value[idx])
+    
+    // Map snake_case từ backend sang camelCase cho frontend
+    const mappedPatch = {}
+    if (patch.hasOwnProperty('is_active')) {
+      mappedPatch.isActive = patch.is_active
+    }
+    if (patch.hasOwnProperty('parent_id')) {
+      mappedPatch.parentId = patch.parent_id
+    }
+    if (patch.hasOwnProperty('sort_order')) {
+      mappedPatch.sortOrder = patch.sort_order
+    }
+    
+    // Thêm các field khác nếu có
+    Object.keys(patch).forEach(key => {
+      if (!['is_active', 'parent_id', 'sort_order'].includes(key)) {
+        mappedPatch[key] = patch[key]
+      }
+    })
+    
+    console.log('Mapped patch:', mappedPatch)
+    
+    // Force reactive update bằng cách tạo array mới hoàn toàn
+    const updatedCategories = categories.value.map((cat, index) => {
+      if (index === idx) {
+        const updated = { ...cat, ...mappedPatch }
+        console.log('Category được cập nhật:', updated)
+        return updated
+      }
+      return cat
+    })
+    
+    console.log('Categories trước khi cập nhật:', categories.value)
+    console.log('Categories sau khi cập nhật:', updatedCategories)
+    
+    // Gán lại toàn bộ array để trigger reactive update
+    categories.value = updatedCategories
+    
+    // Sử dụng watch để đảm bảo reactive updates hoạt động
+    watch(categories, (newVal) => {
+      console.log('Categories trong watch:', newVal)
+    }, { immediate: true, deep: true, flush: 'post' })
+    
+    // Đợi DOM được cập nhật
+    await nextTick()
+    
+    console.log('Categories sau khi gán:', categories.value)
+    
     db.setCollection(CATEGORIES_KEY, categories.value)
   }
 
-  const removeCategory = (id) => {
+  const removeCategory = async (id) => {
+    const respone = await CategoriesApi.deleteCategory(id)
+    if (respone.error) return
     categories.value = categories.value.filter(c => c.id !== id && c.parentId !== id)
     db.setCollection(CATEGORIES_KEY, categories.value)
   }

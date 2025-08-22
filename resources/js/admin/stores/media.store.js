@@ -49,7 +49,7 @@ export const useMediaStore = defineStore('admin.media', () => {
       const list = Array.isArray(res?.data?.data) ? res.data.data : []
       images.value = list.map(img => ({
         id: img.id,
-        productId: img.product_id,
+        productId: String(img.product_id),
         productVariantId: img.product_variant_id,
         url: img.image_path,
         alt: img.alt_text ?? '',

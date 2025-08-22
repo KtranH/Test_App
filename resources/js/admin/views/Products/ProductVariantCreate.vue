@@ -29,16 +29,18 @@
             <h2 class="font-semibold text-gray-900">Thuộc tính biến thể</h2>
           </div>
           <div class="space-y-4">
-            <div v-for="attr in variantAttributes" :key="attr.id" class="">
-              <div class="text-sm font-medium text-gray-800 mb-2">{{ attr.name }}</div>
-              <div class="flex flex-wrap gap-2">
-                <label v-for="val in (valuesByAttrId[attr.id] || [])" :key="val.id" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/60 cursor-pointer">
-                  <input class="accent-indigo-600" type="checkbox" :value="val.id" v-model="selected[attr.id]" />
-                  <span class="inline-flex items-center gap-2 text-sm">
-                    <span v-if="attr.type==='color'" class="w-3 h-3 rounded-full border" :style="{ background: val.meta?.hex || val.value?.toLowerCase?.() }" />
-                    {{ val.value }}
-                  </span>
-                </label>
+            <div v-for="attr in variantAttributes" :key="attr.id" class="space-y-2">
+              <div v-if="attr.isActive">
+                <div class="text-sm font-medium text-gray-800 mb-2">{{ attr.name }}</div>
+                <div class="flex flex-wrap gap-2">
+                  <label v-for="val in (valuesByAttrId[attr.id] || [])" :key="val.id" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/60 cursor-pointer">
+                    <input class="accent-indigo-600" type="checkbox" :value="val.id" v-model="selected[attr.id]" />
+                    <span class="inline-flex items-center gap-2 text-sm">
+                      <span v-if="attr.type==='color'" class="w-3 h-3 rounded-full border" :style="{ background: val.meta?.hex || val.value?.toLowerCase?.() }" />
+                      {{ val.value }}
+                    </span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -154,7 +156,7 @@
         </div>
 
         <div class="flex items-center justify-between">
-          <RouterLink :to="{ name: 'admin.products.edit', params: { id } }" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50">
+          <RouterLink :to="{ name: 'admin.products' }" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50">
             <ArrowLeft class="h-4 w-4" />
             <span class="text-sm font-medium">Quay lại</span>
           </RouterLink>
@@ -175,7 +177,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { Layers, Settings2, Wrench, Sparkles, Trash2, Save, ArrowLeft, DollarSign } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
@@ -295,10 +297,21 @@ onMounted(async () => {
       productStore.ensureInitialized(),
       attributeStore.ensureInitialized(),
     ])
+    // Khởi tạo mảng chọn cho từng thuộc tính biến thể
+    variantAttributes.value.forEach(attr => {
+      if (!Array.isArray(selected[attr.id])) selected[attr.id] = []
+    })
   } finally {
     loading.value = false
   }
 })
+
+// Theo dõi thay đổi danh sách thuộc tính để đảm bảo selected[attrId] luôn là mảng
+watch(variantAttributes, (list) => {
+  list.forEach(attr => {
+    if (!Array.isArray(selected[attr.id])) selected[attr.id] = []
+  })
+}, { immediate: true })
 </script>
 
 <style scoped>

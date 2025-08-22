@@ -11,4 +11,8 @@ class AttributesValuesController extends ApiController
 
     protected $defaultLimit = 10;
 
+    public function __construct()
+    {
+        parent::__construct();
+    }
 }

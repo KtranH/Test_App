@@ -4,15 +4,17 @@
       <div class="text-sm font-medium mb-2">Chọn thuộc tính để tạo biến thể</div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div v-for="attr in variantAttributes" :key="attr.id" class="space-y-2">
-          <div class="text-xs text-black/60">{{ attr.name }}</div>
-          <div class="flex flex-wrap gap-2">
-            <label v-for="val in (valuesByAttrId[attr.id] || [])" :key="val.id" class="inline-flex items-center gap-2 text-sm px-2 py-1 border rounded-lg hover:bg-black/5">
-              <input type="checkbox" :value="val.id" v-model="selected[attr.id]" />
-              <span class="inline-flex items-center gap-2">
-                <span v-if="attr.type==='color'" class="w-3 h-3 rounded-full border" :style="{ background: val.meta?.hex || val.value.toLowerCase() }" />
-                {{ val.value }}
-              </span>
-            </label>
+          <div v-if="attr.isActive">
+            <div class="text-xs text-black/60">{{ attr.name }}</div>
+            <div class="flex flex-wrap gap-2">
+              <label v-for="val in (valuesByAttrId[attr.id] || [])" :key="val.id" class="inline-flex items-center gap-2 text-sm px-2 py-1 border rounded-lg hover:bg-black/5">
+                <input type="checkbox" :value="val.id" v-model="selected[attr.id]" />
+                <span class="inline-flex items-center gap-2">
+                  <span v-if="attr.type==='color'" class="w-3 h-3 rounded-full border" :style="{ background: val.meta?.hex || val.value.toLowerCase() }" />
+                  {{ val.value }}
+                </span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -43,7 +45,7 @@
 </template>
 
 <script setup>
-import { reactive, computed, onMounted } from 'vue'
+import { reactive, computed, onMounted, watch } from 'vue'
 import { useAttributeStore } from '@/admin/stores/attribute.store'
 import { generateVariantsFromMap } from '@/admin/services/variant.util'
 
@@ -65,6 +67,15 @@ onMounted(async () => {
     await fetchAll()
   }
 })
+
+// Đảm bảo mỗi nhóm thuộc tính có một mảng riêng cho v-model checkbox
+watch(variantAttributes, (list) => {
+  list.forEach(attr => {
+    if (!Array.isArray(selected[attr.id])) {
+      selected[attr.id] = []
+    }
+  })
+}, { immediate: true })
 </script>
 
 

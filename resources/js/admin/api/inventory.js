@@ -7,5 +7,14 @@ export const InventoryApi = {
     getInventoryById: async (id) => {
         return apiClient.get(`/v1/inventory/${id}`)
     },
-    getByUrl: async (url) => apiClient.get(url)
+    getByUrl: async (url) => apiClient.get(url),
+    createInventory: async (data) => {
+        return apiClient.post('/v1/inventory', data)
+    },
+    updateInventory: async (id, data) => {
+        return apiClient.put(`/v1/inventory/${id}`, data)
+    },
+    deleteInventory: async (id) => {
+        return apiClient.delete(`/v1/inventory/${id}`)
+    }
 }

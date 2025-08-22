@@ -10,5 +10,17 @@ export const AttributesApi = {
     getAttributeById: async (id) => {
         return apiClient.get(`/v1/attributes/${id}`)
     },
-    getByUrl: async (url) => apiClient.get(url)
+    getByUrl: async (url) => apiClient.get(url),
+    createAttribute: async (data) => {
+        return apiClient.post('/v1/attributes', data)
+    },
+    updateAttribute: async (id, data) => {
+        return apiClient.put(`/v1/attributes/${id}`, data)
+    },
+    deleteAttribute: async (id) => {
+        return apiClient.delete(`/v1/attributes/${id}`)
+    },
+    disableAttribute: async (id, data) => {
+        return apiClient.put(`/v1/attributes/${id}`, data)
+    }
 }

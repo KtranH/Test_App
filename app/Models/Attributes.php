@@ -54,6 +54,7 @@ class Attributes extends ApiModel
         'sort_order',
         'created_at',
         'updated_at',
+        'values{value,code}'
     ];
 
     protected $primaryKey = 'id';

@@ -40,24 +40,23 @@
             <div>
               <label class="text-xs text-black/60">Trạng thái</label>
               <select v-model="form.status" class="w-full px-3 py-2 border rounded-lg">
-                <option value="draft">Draft</option>
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="archived">Lưu trữ</option>
               </select>
             </div>
           </div>
         </div>
 
         <div class="border border-black/10 rounded-lg p-4">
-          <VariantGenerator :product-id="product.id" @generate="onGenerate" />
+          <VariantGenerator :product-id="String(product.id)" @generate="onGenerate" />
         </div>
 
-        <VariantTable :product-id="product.id" />
+        <VariantTable :product-id="String(product.id)" />
       </div>
 
       <div class="lg:col-span-1 space-y-4">
         <div class="border border-black/10 rounded-lg p-4">
-          <ProductImageManager :product-id="product.id" />
+          <ProductImageManager :product-id="String(product.id)" />
         </div>
         <div class="flex justify-end gap-2">
           <button type="button" class="px-3 py-2 border rounded-lg hover:bg-black/5" @click="cancel">Hủy</button>
@@ -76,14 +75,19 @@ import { useProductStore } from '@/admin/stores/product.store'
 import VariantGenerator from '@/admin/components/product/VariantGenerator.vue'
 import VariantTable from '@/admin/components/product/VariantTable.vue'
 import ProductImageManager from '@/admin/components/product/ProductImageManager.vue'
+import { useMediaStore } from '@/admin/stores/media.store'
 
 const route = useRoute()
 const router = useRouter()
 const categoryStore = useCategoryStore()
 const productStore = useProductStore()
+const mediaStore = useMediaStore()
 
 const categories = computed(() => categoryStore.categories)
-const product = computed(() => productStore.products.find(p => p.id === route.params.id))
+const product = computed(() => {
+  const paramId = String(route.params.id ?? '')
+  return productStore.products.find(p => String(p.id) === paramId)
+})
 const form = ref({ name: '', slug: '', description: '', basePrice: 0, categoryId: null, status: 'draft' })
 
 if (product.value) {
@@ -106,7 +110,21 @@ onMounted(async () => {
   ])
   if (product.value) {
     form.value = { ...product.value }
+    // Đồng bộ ảnh từ API sản phẩm vào media store để hiển thị
+    if (Array.isArray(product.value.images) && product.value.images.length) {
+      const pid = String(product.value.id)
+      mediaStore.images = mediaStore.images.filter(i => i.productId !== pid)
+      product.value.images.forEach((img, idx) => {
+        mediaStore.addImage(pid, img.image_path, {
+          isCover: !!img.is_primary,
+          alt: img.alt_text ?? '',
+          position: img.sort_order ?? idx,
+        })
+      })
+    }
   }
+
+  console.log('product', product.value)
 })
 </script>
 
